@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MiniOS 网络控制台</title>
+    <style>
+      :root {
+        --bg: #0b1221;
+        --panel: rgba(255, 255, 255, 0.05);
+        --panel-strong: rgba(255, 255, 255, 0.08);
+        --accent: #5ce1e6;
+        --accent-2: #ff9b4a;
+        --text: #e8eef9;
+        --muted: #8fa1bd;
+        --border: rgba(255, 255, 255, 0.1);
+        --danger: #ff6b6b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+        background: radial-gradient(circle at 20% 20%, #12203c, #0b1221 45%),
+          radial-gradient(circle at 80% 10%, #0d223f, #0b1221 40%),
+          linear-gradient(120deg, #0c1528, #0a0f1d);
+        color: var(--text);
+        padding: 16px 18px 40px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: 0.4px;
+      }
+
+      .hero {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        background: linear-gradient(135deg, rgba(92, 225, 230, 0.08), rgba(255, 155, 74, 0.08));
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.35);
+        border-radius: 14px;
+      }
+
+      .hero .title {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+
+      .title .badge {
+        padding: 4px 9px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        color: var(--accent);
+        border-radius: 10px;
+        font-size: 12px;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        font: inherit;
+        cursor: pointer;
+        border-radius: 10px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--panel);
+        transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent);
+        box-shadow: 0 10px 25px rgba(92, 225, 230, 0.12);
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, var(--accent), #3ba8b1);
+        color: #0a101a;
+        font-weight: 700;
+        border: none;
+      }
+
+      button.ghost {
+        background: transparent;
+      }
+
+      button.danger {
+        border-color: rgba(255, 107, 107, 0.4);
+        color: #ffdcdc;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      input,
+      select,
+      textarea {
+        font: inherit;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        outline: none;
+      }
+
+      textarea {
+        resize: vertical;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.3px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .grid.cols-3 {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
+
+      .grid.cols-2 {
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 14px;
+        border-radius: 12px;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+      }
+
+      .card h3 {
+        margin-bottom: 8px;
+      }
+
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      th {
+        text-align: left;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.2px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: var(--panel-strong);
+        border: 1px solid var(--border);
+      }
+
+      .ram-grid,
+      .swap-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+        gap: 8px;
+      }
+
+      .frame {
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        text-align: center;
+        font-size: 12px;
+        background: var(--panel-strong);
+      }
+
+      .frame .tag {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .stacked {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      pre.log {
+        background: #0a0f1d;
+        border: 1px solid var(--border);
+        padding: 10px;
+        border-radius: 10px;
+        color: var(--muted);
+        max-height: 240px;
+        overflow: auto;
+        font-size: 12px;
+      }
+
+      ul.fs-tree {
+        list-style: none;
+        padding-left: 14px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      ul.fs-tree li {
+        margin: 4px 0;
+      }
+
+      .badge-text {
+        color: var(--accent-2);
+      }
+
+      .flex {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .input-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+      }
+
+      .divider {
+        height: 1px;
+        border: none;
+        background: var(--border);
+        margin: 10px 0;
+      }
+
+      .status-bar {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 12px;
+        }
+        .hero {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .hero-actions {
+          width: 100%;
+          justify-content: flex-start;
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <div class="title">
+        <h1>MiniOS 网络控制台</h1>
+        <span class="badge">本地 FIFO + MLFQ</span>
+      </div>
+      <div class="hero-actions">
+        <button class="ghost" onclick="seedDemo()">生成示例</button>
+        <button onclick="tick(1)">前进一步</button>
+        <button onclick="tick(5)">前进 5 步</button>
+        <button class="primary" id="auto-btn" onclick="toggleAuto()">自动运行</button>
+      </div>
+    </div>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <h3>系统初始化</h3>
+        <div class="input-row">
+          <div>
+            <label>页大小 (KB)</label>
+            <input id="page-size" type="number" value="4" min="1" />
+          </div>
+          <div>
+            <label>内存大小 (KB)</label>
+            <input id="mem-size" type="number" value="64" min="1" />
+          </div>
+          <div>
+            <label>虚存大小 (KB)</label>
+            <input id="vm-size" type="number" value="256" min="1" />
+          </div>
+        </div>
+        <div class="flex" style="margin-top: 10px">
+          <button class="primary" onclick="initSystem()">重新初始化</button>
+          <span class="small" id="cfg-text"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>进程操作</h3>
+        <div class="input-row">
+          <div>
+            <label>名称</label>
+            <input id="proc-name" type="text" value="P" />
+          </div>
+          <div>
+            <label>内存 (KB)</label>
+            <input id="proc-mem" type="number" value="16" min="1" />
+          </div>
+          <div>
+            <label>工作量</label>
+            <input id="proc-work" type="number" value="60" min="1" />
+          </div>
+        </div>
+        <div class="flex" style="margin-top: 10px">
+          <button onclick="createProc()">创建进程</button>
+          <input
+            id="kill-pid"
+            type="number"
+            placeholder="要终止的 PID"
+            style="max-width: 130px"
+          />
+          <button class="danger" onclick="killProc()">终止 PID</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>文件作为负载</h3>
+        <div class="input-row">
+          <div>
+            <label>文件路径</label>
+            <select id="file-path"></select>
+          </div>
+          <div>
+            <label>进程数</label>
+            <input id="file-nprocs" type="number" value="3" min="1" />
+          </div>
+          <div>
+            <label>每个内存 (KB)</label>
+            <input id="file-mem" type="number" value="24" min="1" />
+          </div>
+        </div>
+        <div class="flex" style="margin-top: 10px">
+          <button onclick="runFile()">从文件派生进程</button>
+          <span class="small">文件来自内存文件系统。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top: 12px">
+      <div class="card">
+        <h3>CPU 与队列</h3>
+        <div class="flex" style="margin: 6px 0 10px">
+          <span class="pill">时钟 <span id="tick-val">0</span></span>
+          <span class="pill">运行中 <span id="running-pid">无</span></span>
+        </div>
+        <div id="queues" class="stacked small"></div>
+      </div>
+
+      <div class="card">
+        <h3>进程表</h3>
+        <div style="overflow: auto; max-height: 260px">
+          <table id="proc-table">
+            <thead>
+              <tr>
+                <th>PID</th>
+                <th>Name</th>
+                <th>State</th>
+                <th>Q</th>
+                <th>时间片</th>
+                <th>PC</th>
+                <th>剩余</th>
+                <th>缺页</th>
+                <th>阻塞</th>
+                <th>内存</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="flex" style="margin-top: 10px">
+          <label>选择 PID</label>
+          <select id="pid-select" onchange="renderPageTable()"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top: 12px">
+      <div class="card">
+        <h3>物理内存帧</h3>
+        <div id="ram-grid" class="ram-grid"></div>
+      </div>
+
+      <div class="card">
+        <h3>交换分区帧</h3>
+        <div id="swap-grid" class="swap-grid"></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top: 12px">
+      <div class="card">
+        <div class="flex" style="justify-content: space-between">
+          <h3>页表</h3>
+          <span class="small" id="page-meta"></span>
+        </div>
+        <div style="overflow: auto; max-height: 240px">
+          <table id="pt-table">
+            <thead>
+              <tr>
+                <th>VPN</th>
+                <th>在内存</th>
+                <th>RAM 帧</th>
+                <th>Swap 帧</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>文件系统</h3>
+        <div class="input-row">
+          <div>
+            <label>目录路径</label>
+            <input id="fs-dir" type="text" value="/" />
+          </div>
+          <div>
+            <label>名称</label>
+            <input id="fs-name" type="text" placeholder="新名称" />
+          </div>
+        </div>
+        <div class="flex" style="margin-top: 8px">
+          <button onclick="fsMkdir()">新建目录</button>
+          <button onclick="fsTouch()">新建文件</button>
+        </div>
+        <hr class="divider" />
+        <label>写入文件</label>
+        <div class="input-row">
+          <input id="fs-path" type="text" placeholder="/docs/file.txt" />
+          <select id="fs-append">
+            <option value="true">追加</option>
+            <option value="false">覆盖</option>
+          </select>
+        </div>
+        <textarea id="fs-text" rows="3" placeholder="内容"></textarea>
+        <div class="flex" style="margin-top: 8px">
+          <button onclick="fsWrite()">写入</button>
+          <button onclick="fsRead()">读取</button>
+          <span class="small" id="fs-status"></span>
+        </div>
+        <hr class="divider" />
+        <div id="fs-tree"></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top: 12px">
+      <div class="card">
+        <h3>日志</h3>
+        <pre class="log" id="log-view"></pre>
+      </div>
+      <div class="card">
+        <h3>提示</h3>
+        <ul class="fs-tree">
+          <li>用 <span class="badge-text">重新初始化</span> 重置 RAM/VM 规模。</li>
+          <li>自动运行每 0.4 秒推进一次 tick，直到关闭。</li>
+          <li>内存网格按 PID 着色；仅保留未占用的帧为浅色。</li>
+          <li>下拉框里的文件路径来自内存文件系统。</li>
+          <li>生成示例会创建示例文件并派生相关进程。</li>
+        </ul>
+        <div class="status-bar" id="status-bar"></div>
+      </div>
+    </div>
+
+    <script>
+      const statusBar = document.getElementById("status-bar");
+      const cfgText = document.getElementById("cfg-text");
+      const tickVal = document.getElementById("tick-val");
+      const runningPid = document.getElementById("running-pid");
+      const queuesEl = document.getElementById("queues");
+      const procTableBody = document.querySelector("#proc-table tbody");
+      const pidSelect = document.getElementById("pid-select");
+      const ptBody = document.querySelector("#pt-table tbody");
+      const pageMeta = document.getElementById("page-meta");
+      const filePathSelect = document.getElementById("file-path");
+      const ramGrid = document.getElementById("ram-grid");
+      const swapGrid = document.getElementById("swap-grid");
+      const logView = document.getElementById("log-view");
+      const fsTree = document.getElementById("fs-tree");
+      const fsStatus = document.getElementById("fs-status");
+      const autoBtn = document.getElementById("auto-btn");
+
+      let currentState = null;
+      let autoTimer = null;
+
+      const palette = {};
+      function pidColor(pid) {
+        if (!pid) return "#8893a9";
+        if (!palette[pid]) {
+          const hue = (pid * 37) % 360;
+          palette[pid] = `hsl(${hue}, 70%, 58%)`;
+        }
+        return palette[pid];
+      }
+
+      async function fetchJson(path, opts = {}) {
+        const res = await fetch(path, {
+          headers: { "Content-Type": "application/json" },
+          ...opts,
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return data;
+      }
+
+      async function initSystem() {
+        const payload = {
+          page_kb: Number(document.getElementById("page-size").value || 4),
+          mem_kb: Number(document.getElementById("mem-size").value || 64),
+          vm_kb: Number(document.getElementById("vm-size").value || 256),
+        };
+        await fetchJson("/api/init", { method: "POST", body: JSON.stringify(payload) });
+        setStatus("系统已重新初始化");
+        await refresh();
+      }
+
+      async function tick(count = 1) {
+        await fetchJson("/api/tick", { method: "POST", body: JSON.stringify({ count }) });
+        await refresh();
+      }
+
+      async function createProc() {
+        const payload = {
+          name: document.getElementById("proc-name").value || "P",
+          mem_kb: Number(document.getElementById("proc-mem").value || 16),
+          work: Number(document.getElementById("proc-work").value || 60),
+        };
+        await fetchJson("/api/create", { method: "POST", body: JSON.stringify(payload) });
+        setStatus("已创建进程");
+        await refresh();
+      }
+
+      async function killProc() {
+        const pid = Number(document.getElementById("kill-pid").value);
+        if (!pid) return setStatus("请输入要终止的 PID");
+        await fetchJson("/api/kill", { method: "POST", body: JSON.stringify({ pid }) });
+        setStatus(`已终止 PID ${pid}`);
+        await refresh();
+      }
+
+      async function runFile() {
+        const payload = {
+          path: filePathSelect.value,
+          nprocs: Number(document.getElementById("file-nprocs").value || 1),
+          mem_kb_each: Number(document.getElementById("file-mem").value || 8),
+        };
+        await fetchJson("/api/run_file", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setStatus("已从文件派生进程");
+        await refresh();
+      }
+
+      async function seedDemo() {
+        await fetchJson("/api/seed_demo", { method: "POST", body: "{}" });
+        setStatus("已生成示例数据");
+        await refresh();
+      }
+
+      async function fsMkdir() {
+        const dir_path = document.getElementById("fs-dir").value || "/";
+        const name = document.getElementById("fs-name").value;
+        await fetchJson("/api/fs/mkdir", {
+          method: "POST",
+          body: JSON.stringify({ dir_path, name }),
+        });
+        fsStatus.textContent = "目录已创建";
+        await refresh();
+      }
+
+      async function fsTouch() {
+        const dir_path = document.getElementById("fs-dir").value || "/";
+        const name = document.getElementById("fs-name").value;
+        await fetchJson("/api/fs/touch", {
+          method: "POST",
+          body: JSON.stringify({ dir_path, name }),
+        });
+        fsStatus.textContent = "文件已创建";
+        await refresh();
+      }
+
+      async function fsWrite() {
+        const path = document.getElementById("fs-path").value;
+        const text = document.getElementById("fs-text").value;
+        const append = document.getElementById("fs-append").value === "true";
+        await fetchJson("/api/fs/write", {
+          method: "POST",
+          body: JSON.stringify({ path, text, append }),
+        });
+        fsStatus.textContent = append ? "追加写入完成" : "覆盖写入完成";
+        await refresh();
+      }
+
+      async function fsRead() {
+        const path = document.getElementById("fs-path").value;
+        if (!path) return;
+        const res = await fetchJson(`/api/fs/read?path=${encodeURIComponent(path)}`);
+        document.getElementById("fs-text").value = res.content || "";
+        fsStatus.textContent = `已读取 ${res.content.length} 字节`;
+      }
+
+      async function refresh() {
+        try {
+          const state = await fetchJson("/api/state");
+          currentState = state;
+          render(state);
+        } catch (err) {
+          setStatus(err.message, true);
+        }
+      }
+
+      function render(state) {
+        cfgText.textContent = `页 ${state.config.page_kb} KB | 内存 ${state.config.mem_kb} KB (${state.config.ram_frames} 帧) | 虚存 ${state.config.vm_kb} KB (${state.config.swap_frames} 帧)`;
+        tickVal.textContent = state.ticks;
+        runningPid.textContent = state.running_pid || "无";
+
+        queuesEl.innerHTML = "";
+        state.queues.forEach((q, idx) => {
+          const div = document.createElement("div");
+          div.textContent = `Q${idx}: [${q.join(", ")}]`;
+          queuesEl.appendChild(div);
+        });
+
+        // process table
+        procTableBody.innerHTML = "";
+        state.processes.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${p.pid}</td>
+            <td style="color:${pidColor(p.pid)}">${p.name}</td>
+            <td>${p.state}</td>
+            <td>${p.queue}</td>
+            <td>${p.slice_left}</td>
+            <td>${p.pc}</td>
+            <td>${p.remaining}</td>
+            <td>${p.page_faults}</td>
+            <td>${p.block_left}</td>
+            <td>${p.mem_kb}</td>
+          `;
+          procTableBody.appendChild(tr);
+        });
+
+        // pid dropdown
+        const selected = pidSelect.value;
+        pidSelect.innerHTML = "";
+        state.processes.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.pid;
+          opt.textContent = `${p.pid} - ${p.name}`;
+          pidSelect.appendChild(opt);
+        });
+        if (state.processes.length) {
+          pidSelect.value = selected && state.processes.some((p) => p.pid == selected)
+            ? selected
+            : state.processes[0].pid;
+        }
+
+        // memory grids
+        ramGrid.innerHTML = "";
+        state.ram.forEach((fr) => {
+          const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
+          const div = document.createElement("div");
+          const base = fr.owner ? pidColor(fr.owner.pid) : "#1f2a3b";
+          const tint = fr.owner
+            ? base
+            : fr.reserved
+            ? pidColor(fr.reserved) + "66"
+            : "#1f2a3b";
+          div.className = "frame";
+          div.style.background = tint;
+          div.style.color = fr.owner ? "#0a0f1d" : "#dbe7ff";
+          div.innerHTML = `<span class="tag">R${fr.id}</span>${owner}<br/><span class="small">${
+            fr.reserved ? "res " + fr.reserved : "open"
+          }</span>`;
+          ramGrid.appendChild(div);
+        });
+
+        swapGrid.innerHTML = "";
+        state.swap.forEach((fr) => {
+          const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
+          const div = document.createElement("div");
+          div.className = "frame";
+          div.style.background = fr.owner ? pidColor(fr.owner.pid) : "#1c2436";
+          div.style.color = fr.owner ? "#0a0f1d" : "#dbe7ff";
+          div.innerHTML = `<span class="tag">S${fr.id}</span>${owner}`;
+          swapGrid.appendChild(div);
+        });
+
+        // file paths dropdown
+        const curFile = filePathSelect.value;
+        filePathSelect.innerHTML = "";
+        state.files.forEach((f) => {
+          const opt = document.createElement("option");
+          opt.value = f;
+          opt.textContent = f;
+          filePathSelect.appendChild(opt);
+        });
+        if (state.files.length) {
+          filePathSelect.value = state.files.includes(curFile)
+            ? curFile
+            : state.files[0];
+        }
+
+        // log
+        logView.textContent = state.log.join("\n");
+        renderFsTree(state.fs_tree);
+        renderPageTable();
+      }
+
+      function renderPageTable() {
+        ptBody.innerHTML = "";
+        pageMeta.textContent = "";
+        if (!currentState || !currentState.processes.length) return;
+        const pid = Number(pidSelect.value);
+        const proc = currentState.processes.find((p) => p.pid === pid);
+        if (!proc) return;
+
+        pageMeta.textContent = `pages ${proc.num_pages} | RAM quota ${proc.ram_quota}`;
+
+        proc.page_table.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.vpn}</td>
+            <td>${row.present ? "1" : "0"}</td>
+            <td>${row.frame ?? "-"}</td>
+            <td>${row.swap ?? "-"}</td>
+          `;
+          ptBody.appendChild(tr);
+        });
+      }
+
+      function renderFsTree(tree) {
+        fsTree.innerHTML = "";
+        const ul = document.createElement("ul");
+        ul.className = "fs-tree";
+        function walk(node, parent) {
+          const li = document.createElement("li");
+          li.textContent = node.is_dir
+            ? `${node.path}/`
+            : `${node.path} (${node.size || 0}B)`;
+          parent.appendChild(li);
+          if (node.children) {
+            const inner = document.createElement("ul");
+            inner.className = "fs-tree";
+            node.children.forEach((c) => walk(c, inner));
+            parent.appendChild(inner);
+          }
+        }
+        walk(tree, ul);
+        fsTree.appendChild(ul);
+      }
+
+      function setStatus(msg, isError = false) {
+        statusBar.textContent = msg;
+        statusBar.style.color = isError ? varColor("--danger") : varColor("--muted");
+      }
+
+      function varColor(name) {
+        return getComputedStyle(document.documentElement)
+          .getPropertyValue(name)
+          .trim();
+      }
+
+      function toggleAuto() {
+        if (autoTimer) {
+          clearInterval(autoTimer);
+          autoTimer = null;
+          autoBtn.textContent = "自动运行";
+          setStatus("自动运行已停止");
+        } else {
+          autoTimer = setInterval(() => {
+            tick(1).catch((err) => setStatus(err.message, true));
+          }, 400);
+          autoBtn.textContent = "停止自动";
+          setStatus("自动运行中");
+        }
+      }
+
+      // Initial load
+      refresh();
+    </script>
+  </body>
+</html>

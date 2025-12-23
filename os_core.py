@@ -18,7 +18,7 @@ STATE_RUNNING = "RUNNING"
 STATE_BLOCKED = "BLOCKED"
 STATE_TERMINATED = "TERMINATED"
 
-MLFQ_QUANTA = [2, 4, 8]
+MLFQ_QUANTA = [4, 8, 16]
 BOOST_PERIOD = 20
 PAGEFAULT_BLOCK_TICKS = 2
 
@@ -447,8 +447,11 @@ class MiniOS:
         self.log_lines: List[str] = []
 
         # 生产者-消费者缓冲池（内置，非文件模式）
-        self.pc_buffer: List[str] = []
         self.pc_buffer_capacity = PC_BUFFER_CAPACITY
+        self.pc_buffer: List[Optional[str]] = [None] * self.pc_buffer_capacity
+        self.pc_buffer_count = 0
+        self.pc_in_ptr = 0
+        self.pc_out_ptr = 0
 
     def log(self, msg: str) -> None:
         self.log_lines.append(f"[tick={self.ticks:04d}] {msg}")
@@ -631,7 +634,10 @@ class MiniOS:
             raise RuntimeError("生产者/消费者数量必须为正整数")
 
         # 重置内置缓冲池
-        self.pc_buffer = []
+        self.pc_buffer = [None] * self.pc_buffer_capacity
+        self.pc_buffer_count = 0
+        self.pc_in_ptr = 0
+        self.pc_out_ptr = 0
 
         infinite_mode = items_per_producer <= 0
         total_items = producers * items_per_producer if not infinite_mode else 0
@@ -791,24 +797,28 @@ class MiniOS:
 
         buf = self.pc_buffer
         cap = getattr(self, "pc_buffer_capacity", PC_BUFFER_CAPACITY)
+        count = getattr(self, "pc_buffer_count", 0)
 
         if pcb.role == "producer":
-            if len(buf) >= cap:
+            if count >= cap:
                 pcb.state = STATE_BLOCKED
                 pcb.block_left = PROD_BLOCK_TICKS
                 self.sched.running_pid = None
                 self.log(
-                    f"Producer blocked: PID={pcb.pid} buffer full ({len(buf)}/{cap}) wait {PROD_BLOCK_TICKS} ticks"
+                    f"Producer blocked: PID={pcb.pid} buffer full ({count}/{cap}) wait {PROD_BLOCK_TICKS} ticks"
                 )
                 return True
+            put_slot = self.pc_in_ptr
             item = f"{pcb.pid}-item{pcb.items_done + 1}"
-            buf.append(item)
+            buf[put_slot] = item
             pcb.items_done += 1
+            self.pc_in_ptr = (self.pc_in_ptr + 1) % cap
+            self.pc_buffer_count = count + 1
             self.log(
-                f"Produce: PID={pcb.pid} -> buffer put {item} (done {pcb.items_done}/{pcb.items_goal}; buf {len(buf)}/{cap})"
+                f"Produce: PID={pcb.pid} -> buffer put {item} at slot {put_slot} (done {pcb.items_done}/{pcb.items_goal}; buf {self.pc_buffer_count}/{cap}; in->{self.pc_in_ptr})"
             )
         else:
-            if not buf:
+            if count <= 0:
                 pcb.state = STATE_BLOCKED
                 pcb.block_left = CONS_BLOCK_TICKS
                 self.sched.running_pid = None
@@ -816,10 +826,14 @@ class MiniOS:
                     f"Consumer blocked: PID={pcb.pid} buffer empty, wait {CONS_BLOCK_TICKS} ticks"
                 )
                 return True
-            consumed = buf.pop(0)
+            take_slot = self.pc_out_ptr
+            consumed = buf[take_slot]
+            buf[take_slot] = None
             pcb.items_done += 1
+            self.pc_out_ptr = (self.pc_out_ptr + 1) % cap
+            self.pc_buffer_count = max(0, count - 1)
             self.log(
-                f"Consume: PID={pcb.pid} <- buffer get {consumed} (done {pcb.items_done}/{pcb.items_goal}; buf {len(buf)}/{cap})"
+                f"Consume: PID={pcb.pid} <- buffer get {consumed} from slot {take_slot} (done {pcb.items_done}/{pcb.items_goal}; buf {self.pc_buffer_count}/{cap}; out->{self.pc_out_ptr})"
             )
 
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:

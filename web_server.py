@@ -150,6 +150,9 @@ def build_snapshot() -> Dict[str, Any]:
         "pc_buffer": {
             "items": list(getattr(os_obj, "pc_buffer", [])),
             "capacity": getattr(os_obj, "pc_buffer_capacity", PC_BUFFER_CAPACITY),
+            "in": getattr(os_obj, "pc_in_ptr", 0),
+            "out": getattr(os_obj, "pc_out_ptr", 0),
+            "count": getattr(os_obj, "pc_buffer_count", 0),
         },
         "fs_tree": _fs_tree(os_obj.fs.root),
         "files": os_obj.fs.list_file_paths(),

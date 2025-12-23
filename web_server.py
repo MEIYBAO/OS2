@@ -22,6 +22,7 @@ from os_core import (
     DEFAULT_PROC_MEM_KB,
     DEFAULT_PROC_WORK,
     DEFAULT_VM_SIZE_KB,
+    PC_BUFFER_CAPACITY,
     FileSystem,
     MiniOS,
 )
@@ -142,14 +143,18 @@ def build_snapshot() -> Dict[str, Any]:
                 "swap_frames": os_obj.swap_frames,
             },
             "running_pid": os_obj.sched.running_pid,
-            "queues": os_obj.sched.snapshot_queues(),
-            "processes": procs,
-            "ram": _ram_snapshot(os_obj),
-            "swap": _swap_snapshot(os_obj),
-            "fs_tree": _fs_tree(os_obj.fs.root),
-            "files": os_obj.fs.list_file_paths(),
-            "log": os_obj.log_lines[-500:],
-        }
+        "queues": os_obj.sched.snapshot_queues(os_obj.pcbs),
+        "processes": procs,
+        "ram": _ram_snapshot(os_obj),
+        "swap": _swap_snapshot(os_obj),
+        "pc_buffer": {
+            "items": list(getattr(os_obj, "pc_buffer", [])),
+            "capacity": getattr(os_obj, "pc_buffer_capacity", PC_BUFFER_CAPACITY),
+        },
+        "fs_tree": _fs_tree(os_obj.fs.root),
+        "files": os_obj.fs.list_file_paths(),
+        "log": os_obj.log_lines[-500:],
+    }
 
 
 # --------------------------- HTTP layer --------------------------- #
@@ -253,14 +258,12 @@ class OSRequestHandler(SimpleHTTPRequestHandler):
         return self._send_json(build_snapshot())
 
     def _handle_pc_demo(self, data: Dict[str, Any]) -> None:
-        path = (data.get("path") or "/data/buffer.txt").strip()
         prod = int(data.get("producers", 2))
         cons = int(data.get("consumers", 2))
-        items = int(data.get("items_per_producer", 3))
+        items = int(data.get("items_per_producer", 0))
         mem_each = int(data.get("mem_kb_each", DEFAULT_PROC_MEM_KB))
         with STATE.lock:
             STATE.os.run_prod_consumer(
-                file_path=path,
                 producers=prod,
                 consumers=cons,
                 items_per_producer=items,

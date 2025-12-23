@@ -28,9 +28,10 @@ DEFAULT_VM_SIZE_KB = 256
 
 DEFAULT_PROC_MEM_KB = 16
 DEFAULT_PROC_WORK = 60
-BUFFER_CAPACITY_LINES = 24  # ??????????????????
-PROD_BLOCK_TICKS = 2  # ????????????
-CONS_BLOCK_TICKS = 2  # ????????????
+BUFFER_CAPACITY_LINES = 24  # 用文件内容作为有界缓冲区，行数即容量
+PROD_BLOCK_TICKS = 2  # 缓冲区满时生产者阻塞时长
+CONS_BLOCK_TICKS = 2  # 缓冲区空时消费者阻塞时长
+PC_BUFFER_CAPACITY = 5  # 内置生产者-消费者缓冲池容量
 
 
 
@@ -190,9 +191,18 @@ class PCB:
         return len(self.ram_pool)
 
     def is_done(self) -> bool:
+        # 生产者/消费者：当 items_goal<=0 时视为长期运行，不根据 pc 结束
+        if self.role in ("producer", "consumer"):
+            if getattr(self, "items_goal", 0) <= 0:
+                return False
+            # items_goal>0 时仅按完成量结束
+            return self.items_done >= self.items_goal
         return self.pc >= len(self.access_seq)
 
     def next_vpn(self) -> Optional[int]:
+        # 生产者/消费者：循环访问序列，维持“长期运行”
+        if self.role in ("producer", "consumer") and self.access_seq:
+            return self.access_seq[self.pc % len(self.access_seq)]
         if self.pc >= len(self.access_seq):
             return None
         return self.access_seq[self.pc]
@@ -357,10 +367,24 @@ class MLFQScheduler:
         self.queues[pcb.queue_level].append(pcb.pid)
 
     def requeue_after_unblock(self, pcb: PCB) -> None:
-        # 阻塞恢复：保持当前队列，延续剩余时间片（若耗尽则至少1个tick）
+        # 阻塞恢复：回到最高优先级队列，使用该队列时间片
+        pcb.queue_level = 0
+        pcb.slice_left = MLFQ_QUANTA[0]
+        self.queues[0].append(pcb.pid)
+
+    def requeue_after_preempt(self, pcb: PCB) -> None:
+        # 被抢占：保持当前队列，保留剩余时间片（至少1 tick），排到队尾
         if pcb.slice_left <= 0:
             pcb.slice_left = 1
         self.queues[pcb.queue_level].append(pcb.pid)
+
+    def highest_ready_level(self, pcbs: Dict[int, PCB]) -> Optional[int]:
+        for lvl in range(self.levels):
+            for pid in list(self.queues[lvl]):
+                pcb = pcbs.get(pid)
+                if pcb and pcb.state == STATE_READY:
+                    return lvl
+        return None
 
     def boost_all_ready(self, pcbs: Dict[int, PCB]) -> None:
         all_pids: List[int] = []
@@ -387,8 +411,13 @@ class MLFQScheduler:
                     return pid
         return None
 
-    def snapshot_queues(self) -> List[List[int]]:
-        return [list(q) for q in self.queues]
+    def snapshot_queues(self, pcbs: Optional[Dict[int, PCB]] = None) -> List[List[int]]:
+        qs = [list(q) for q in self.queues]
+        if pcbs is not None and self.running_pid is not None:
+            pcb = pcbs.get(self.running_pid)
+            if pcb and 0 <= pcb.queue_level < len(qs):
+                qs[pcb.queue_level] = [self.running_pid] + qs[pcb.queue_level]
+        return qs
 
 
 class MiniOS:
@@ -416,6 +445,10 @@ class MiniOS:
 
         self.ticks = 0
         self.log_lines: List[str] = []
+
+        # 生产者-消费者缓冲池（内置，非文件模式）
+        self.pc_buffer: List[str] = []
+        self.pc_buffer_capacity = PC_BUFFER_CAPACITY
 
     def log(self, msg: str) -> None:
         self.log_lines.append(f"[tick={self.ticks:04d}] {msg}")
@@ -588,69 +621,51 @@ class MiniOS:
 
     def run_prod_consumer(
         self,
-        file_path: str = "/data/buffer.txt",
         producers: int = 2,
         consumers: int = 2,
-        items_per_producer: int = 3,
+        items_per_producer: int = 0,
         mem_kb_each: int = DEFAULT_PROC_MEM_KB,
     ) -> List[PCB]:
-        """Create producer/consumer processes that use a file as a bounded buffer."""
-        if producers <= 0 or consumers <= 0 or items_per_producer <= 0:
-            raise RuntimeError("???/???/??????????")
+        """创建生产者/消费者进程，使用内置缓冲池（容量 PC_BUFFER_CAPACITY）。"""
+        if producers <= 0 or consumers <= 0:
+            raise RuntimeError("生产者/消费者数量必须为正整数")
 
-        path = (file_path or "/data/buffer.txt").strip()
-        if not path.startswith("/"):
-            path = "/" + path
-        parts = [p for p in path.split("/") if p]
-        parent = "/" + "/".join(parts[:-1]) if len(parts) > 1 else "/"
-        fname = parts[-1] if parts else "buffer.txt"
+        # 重置内置缓冲池
+        self.pc_buffer = []
 
-        # Ensure directories exist
-        cur = "/"
-        for part in [p for p in parent.split("/") if p]:
-            nxt = cur.rstrip("/") + "/" + part
-            if not self.fs.exists(nxt):
-                self.fs.mkdir(cur, part)
-            cur = nxt
-
-        full_path = (cur.rstrip("/") + "/" + fname) if cur != "/" else "/" + fname
-        if not self.fs.exists(full_path):
-            self.fs.touch(cur, fname)
-        else:
-            self.fs.write(full_path, "", append=False)
-
-        total_items = producers * items_per_producer
-        items_per_consumer = math.ceil(total_items / consumers)
+        infinite_mode = items_per_producer <= 0
+        total_items = producers * items_per_producer if not infinite_mode else 0
+        items_per_consumer = (
+            math.ceil(total_items / consumers) if not infinite_mode else 0
+        )
 
         created: List[PCB] = []
         for i in range(producers):
             pcb = self.create_process(
                 name=f"producer#{i+1}",
                 mem_kb=mem_kb_each,
-                work_len=items_per_producer * 4,
+                work_len=(items_per_producer or 8) * 4,
                 from_file=None,
                 salt=i + 10,
             )
             pcb.role = "producer"
-            pcb.target_file = full_path
-            pcb.items_goal = items_per_producer
+            pcb.items_goal = 0 if infinite_mode else items_per_producer
             created.append(pcb)
 
         for j in range(consumers):
             pcb = self.create_process(
                 name=f"consumer#{j+1}",
                 mem_kb=mem_kb_each,
-                work_len=items_per_consumer * 4,
+                work_len=(items_per_consumer or 8) * 4,
                 from_file=None,
                 salt=j + 100,
             )
             pcb.role = "consumer"
-            pcb.target_file = full_path
-            pcb.items_goal = items_per_consumer
+            pcb.items_goal = 0 if infinite_mode else items_per_consumer
             created.append(pcb)
 
         self.log(
-            f"???-??????={full_path} ???={producers}?{items_per_producer}? ???={consumers}?{items_per_consumer}? ????={BUFFER_CAPACITY_LINES}"
+            f"生产者-消费者：内置缓冲池(cap={self.pc_buffer_capacity}) 生产者={producers}{'无限' if infinite_mode else '×'+str(items_per_producer)} 消费者={consumers}{'无限' if infinite_mode else '×'+str(items_per_consumer)}"
         )
         return created
 
@@ -688,6 +703,31 @@ class MiniOS:
         if pcb is None or pcb.state != STATE_RUNNING:
             self.sched.running_pid = None
             return
+
+        # 高优先级队列有就绪进程时抢占当前进程（保留剩余时间片，排回当前队列尾）
+        ready_lvl = self.sched.highest_ready_level(self.pcbs)
+        if ready_lvl is not None and ready_lvl < pcb.queue_level:
+            pcb.state = STATE_READY
+            if pcb.slice_left <= 0:
+                pcb.slice_left = 1
+            self.sched.requeue_after_preempt(pcb)
+            self.log(
+                f"抢占：PID={pcb.pid} (Q{pcb.queue_level}) 被更高优先级Q{ready_lvl} 进程抢占，剩余slice={pcb.slice_left} 入队尾"
+            )
+            self.sched.running_pid = None
+            nxt = self.sched.pick_next(self.pcbs)
+            if nxt is None:
+                self.log("CPU 空闲（抢占后无READY进程）")
+                return
+            p = self.pcbs[nxt]
+            p.state = STATE_RUNNING
+            if p.slice_left <= 0:
+                p.slice_left = MLFQ_QUANTA[p.queue_level]
+            self.sched.running_pid = nxt
+            self.log(
+                f"调度：PID={nxt} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
+            )
+            pcb = p
 
         if pcb.is_done():
             self.finish_process(pcb.pid, reason="执行完成")
@@ -743,38 +783,32 @@ class MiniOS:
 
 
     def _maybe_handle_prod_consumer(self, pcb: PCB) -> bool:
-        """???/????? I/O???True???tick??/??/???"""
-        if pcb.role not in ("producer", "consumer") or not pcb.target_file:
+        """生产/消费 I/O；返回 True 表示本 tick 已处理阻塞/完成/消费生产。"""
+        if pcb.role not in ("producer", "consumer"):
             return False
-        if pcb.items_done >= pcb.items_goal:
-            return False
-
-        try:
-            content = self.fs.read(pcb.target_file)
-        except Exception as e:
-            self.log(f"PC error: PID={pcb.pid} cannot access {pcb.target_file} - {e}")
+        if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             return False
 
-        lines = [ln for ln in content.splitlines() if ln.strip() != ""]
+        buf = self.pc_buffer
+        cap = getattr(self, "pc_buffer_capacity", PC_BUFFER_CAPACITY)
 
         if pcb.role == "producer":
-            if len(lines) >= BUFFER_CAPACITY_LINES:
+            if len(buf) >= cap:
                 pcb.state = STATE_BLOCKED
                 pcb.block_left = PROD_BLOCK_TICKS
                 self.sched.running_pid = None
                 self.log(
-                    f"Producer blocked: PID={pcb.pid} buffer full ({len(lines)}/{BUFFER_CAPACITY_LINES}) wait {PROD_BLOCK_TICKS} ticks"
+                    f"Producer blocked: PID={pcb.pid} buffer full ({len(buf)}/{cap}) wait {PROD_BLOCK_TICKS} ticks"
                 )
                 return True
             item = f"{pcb.pid}-item{pcb.items_done + 1}"
-            lines.append(item)
-            self.fs.write(pcb.target_file, "\n".join(lines) + "\n", append=False)
+            buf.append(item)
             pcb.items_done += 1
             self.log(
-                f"Produce: PID={pcb.pid} -> {pcb.target_file} write {item} (done {pcb.items_done}/{pcb.items_goal})"
+                f"Produce: PID={pcb.pid} -> buffer put {item} (done {pcb.items_done}/{pcb.items_goal}; buf {len(buf)}/{cap})"
             )
         else:
-            if not lines:
+            if not buf:
                 pcb.state = STATE_BLOCKED
                 pcb.block_left = CONS_BLOCK_TICKS
                 self.sched.running_pid = None
@@ -782,16 +816,13 @@ class MiniOS:
                     f"Consumer blocked: PID={pcb.pid} buffer empty, wait {CONS_BLOCK_TICKS} ticks"
                 )
                 return True
-            consumed = lines.pop(0)
-            self.fs.write(
-                pcb.target_file, "\n".join(lines) + ("\n" if lines else ""), append=False
-            )
+            consumed = buf.pop(0)
             pcb.items_done += 1
             self.log(
-                f"Consume: PID={pcb.pid} <- {pcb.target_file} read {consumed} (done {pcb.items_done}/{pcb.items_goal}, buffer {len(lines)})"
+                f"Consume: PID={pcb.pid} <- buffer get {consumed} (done {pcb.items_done}/{pcb.items_goal}; buf {len(buf)}/{cap})"
             )
 
-        if pcb.items_done >= pcb.items_goal:
+        if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             self.finish_process(pcb.pid, reason=f"{pcb.role} done")
             self.sched.running_pid = None
             return True
@@ -1394,7 +1425,7 @@ class MiniOSGUI:
             )
 
     def _refresh_queues(self):
-        qs = self.os.sched.snapshot_queues()
+        qs = self.os.sched.snapshot_queues(self.os.pcbs)
         parts = []
         for i, q in enumerate(qs):
             parts.append(f"Q{i}(q={MLFQ_QUANTA[i]}): {q}")

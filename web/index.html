@@ -203,6 +203,10 @@
         gap: 8px;
       }
 
+      .buffer-grid {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      }
+
       .frame {
         padding: 8px;
         border-radius: 10px;
@@ -390,11 +394,11 @@
           <span class="small">文件来自内存文件系统。</span>
         </div>
         <hr class="divider" />
-        <h4 style="margin:6px 0">生产者-消费者示例</h4>
+        <h4 style="margin:6px 0">生产者 / 消费者示例</h4>
         <div class="input-row">
           <div>
-            <label>缓冲文件</label>
-            <input id="pc-path" type="text" value="/data/buffer.txt" />
+            <label>缓冲池</label>
+            <input id="pc-path" type="text" value="内置缓冲池 (无需文件)" disabled />
           </div>
           <div>
             <label>生产者数</label>
@@ -407,8 +411,8 @@
         </div>
         <div class="input-row">
           <div>
-            <label>每个生产数量</label>
-            <input id="pc-items" type="number" value="3" min="1" />
+            <label>每个生产数量 (0=无限)</label>
+            <input id="pc-items" type="number" value="0" min="0" />
           </div>
           <div>
             <label>进程内存 (KB)</label>
@@ -468,8 +472,15 @@
       </div>
 
       <div class="card">
-        <h3>虚拟内存帧</h3>
+        <h3>交换分区帧</h3>
         <div id="swap-grid" class="swap-grid"></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top: 12px">
+      <div class="card">
+        <h3>生产者/消费者缓冲池</h3>
+        <div id="pc-buffer" class="ram-grid buffer-grid"></div>
       </div>
     </div>
 
@@ -561,6 +572,7 @@
       const filePathSelect = document.getElementById("file-path");
       const ramGrid = document.getElementById("ram-grid");
       const swapGrid = document.getElementById("swap-grid");
+      const pcBufferGrid = document.getElementById("pc-buffer");
       const logView = document.getElementById("log-view");
       const fsTree = document.getElementById("fs-tree");
       const fsStatus = document.getElementById("fs-status");
@@ -644,17 +656,16 @@
 
       async function runPCDemo() {
         const payload = {
-          path: document.getElementById("pc-path").value || "/data/buffer.txt",
           producers: Number(document.getElementById("pc-prod").value || 1),
           consumers: Number(document.getElementById("pc-cons").value || 1),
-          items_per_producer: Number(document.getElementById("pc-items").value || 1),
+          items_per_producer: Number(document.getElementById("pc-items").value || 0),
           mem_kb_each: Number(document.getElementById("pc-mem").value || 8),
         };
         await fetchJson("/api/pc_demo", {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        setStatus("已生成生产者/消费者场景");
+        setStatus("已创建生产者/消费者并重置缓冲池");
         await refresh();
       }
 
@@ -795,6 +806,8 @@
           swapGrid.appendChild(div);
         });
 
+        renderBuffer(state.pc_buffer);
+
         // file paths dropdown
         const curFile = filePathSelect.value;
         filePathSelect.innerHTML = "";
@@ -857,6 +870,25 @@
         }
         walk(tree, ul);
         fsTree.appendChild(ul);
+      }
+
+      function renderBuffer(bufState) {
+        pcBufferGrid.innerHTML = "";
+        if (!bufState) {
+          return;
+        }
+        const items = bufState.items || [];
+        const cap = bufState.capacity || 0;
+        for (let i = 0; i < cap; i++) {
+          const div = document.createElement("div");
+          div.className = "frame";
+          const item = items[i];
+          const owned = item !== undefined;
+          div.style.background = owned ? "#4bd295" : "#1f2a3b";
+          div.style.color = owned ? "#0a0f1d" : "#dbe7ff";
+          div.innerHTML = `<span class="tag">槽位 ${i}</span>${owned ? item : "空"}`;
+          pcBufferGrid.appendChild(div);
+        }
       }
 
       function setStatus(msg, isError = false) {

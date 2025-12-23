@@ -71,6 +71,8 @@
       .hero-actions {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
       }
 
       button {
@@ -309,6 +311,10 @@
         <button onclick="tick(1)">前进一步</button>
         <button onclick="tick(5)">前进 5 步</button>
         <button class="primary" id="auto-btn" onclick="toggleAuto()">自动运行</button>
+        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;">
+          间隔(ms)
+          <input id="auto-interval" type="number" value="400" min="50" step="50" style="width:90px" />
+        </label>
       </div>
     </div>
 
@@ -462,7 +468,7 @@
       </div>
 
       <div class="card">
-        <h3>交换分区帧</h3>
+        <h3>虚拟内存帧</h3>
         <div id="swap-grid" class="swap-grid"></div>
       </div>
     </div>
@@ -480,7 +486,7 @@
                 <th>VPN</th>
                 <th>在内存</th>
                 <th>RAM 帧</th>
-                <th>Swap 帧</th>
+                <th>虚拟内存帧</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -559,9 +565,11 @@
       const fsTree = document.getElementById("fs-tree");
       const fsStatus = document.getElementById("fs-status");
       const autoBtn = document.getElementById("auto-btn");
+      const autoInput = document.getElementById("auto-interval");
 
       let currentState = null;
       let autoTimer = null;
+      let autoInterval = Number(autoInput.value) || 400;
 
       const palette = {};
       function pidColor(pid) {
@@ -863,6 +871,9 @@
       }
 
       function toggleAuto() {
+        autoInterval = Number(autoInput.value) || 400;
+        autoInterval = Math.max(50, autoInterval);
+        autoInput.value = autoInterval;
         if (autoTimer) {
           clearInterval(autoTimer);
           autoTimer = null;
@@ -871,11 +882,26 @@
         } else {
           autoTimer = setInterval(() => {
             tick(1).catch((err) => setStatus(err.message, true));
-          }, 400);
+          }, autoInterval);
           autoBtn.textContent = "停止自动";
-          setStatus("自动运行中");
+          setStatus(`自动运行中，间隔 ${autoInterval} ms`);
         }
       }
+
+      autoInput.addEventListener("change", () => {
+        autoInterval = Number(autoInput.value) || autoInterval;
+        autoInterval = Math.max(50, autoInterval);
+        autoInput.value = autoInterval;
+        if (autoTimer) {
+          clearInterval(autoTimer);
+          autoTimer = setInterval(() => {
+            tick(1).catch((err) => setStatus(err.message, true));
+          }, autoInterval);
+          setStatus(`自动运行中，间隔 ${autoInterval} ms`);
+        } else {
+          setStatus(`自动间隔设为 ${autoInterval} ms`);
+        }
+      });
 
       // Initial load
       refresh();

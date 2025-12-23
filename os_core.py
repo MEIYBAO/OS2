@@ -18,7 +18,7 @@ STATE_RUNNING = "RUNNING"
 STATE_BLOCKED = "BLOCKED"
 STATE_TERMINATED = "TERMINATED"
 
-MLFQ_QUANTA = [1, 2, 4]
+MLFQ_QUANTA = [2, 4, 8]
 BOOST_PERIOD = 20
 PAGEFAULT_BLOCK_TICKS = 2
 
@@ -348,15 +348,18 @@ class MLFQScheduler:
         self.queues[0].append(pid)
 
     def requeue_after_timeslice(self, pcb: PCB) -> None:
+        # 若未到底层则降级；到底层则继续排在末尾并重置时间片
         if pcb.queue_level < self.levels - 1:
             pcb.queue_level += 1
+        else:
+            pcb.queue_level = self.levels - 1
         pcb.slice_left = MLFQ_QUANTA[pcb.queue_level]
         self.queues[pcb.queue_level].append(pcb.pid)
 
     def requeue_after_unblock(self, pcb: PCB) -> None:
-        if pcb.queue_level > 0:
-            pcb.queue_level -= 1
-        pcb.slice_left = MLFQ_QUANTA[pcb.queue_level]
+        # 阻塞恢复：保持当前队列，延续剩余时间片（若耗尽则至少1个tick）
+        if pcb.slice_left <= 0:
+            pcb.slice_left = 1
         self.queues[pcb.queue_level].append(pcb.pid)
 
     def boost_all_ready(self, pcbs: Dict[int, PCB]) -> None:
@@ -653,9 +656,7 @@ class MiniOS:
 
     def tick(self) -> None:
         self.ticks += 1
-        if self.ticks % BOOST_PERIOD == 0:
-            self.sched.boost_all_ready(self.pcbs)
-            self.log("MLFQ BOOST：所有READY进程提升到Q0（防饥饿）")
+        # 不再定期全局BOOST，避免破坏当前优先级分布
 
         for pcb in list(self.pcbs.values()):
             if pcb.state == STATE_BLOCKED:

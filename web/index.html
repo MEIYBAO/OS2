@@ -154,8 +154,9 @@
         box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
       }
 
-      .card h3 {
-        margin-bottom: 8px;
+      .card h3,
+      .card h4 {
+        margin-bottom: 10px;
       }
 
       .small {
@@ -257,8 +258,15 @@
 
       .input-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px 12px;
+        align-items: start;
+      }
+
+      .input-row > div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
 
       .divider {
@@ -375,6 +383,35 @@
           <button onclick="runFile()">从文件派生进程</button>
           <span class="small">文件来自内存文件系统。</span>
         </div>
+        <hr class="divider" />
+        <h4 style="margin:6px 0">生产者-消费者示例</h4>
+        <div class="input-row">
+          <div>
+            <label>缓冲文件</label>
+            <input id="pc-path" type="text" value="/data/buffer.txt" />
+          </div>
+          <div>
+            <label>生产者数</label>
+            <input id="pc-prod" type="number" value="2" min="1" />
+          </div>
+          <div>
+            <label>消费者数</label>
+            <input id="pc-cons" type="number" value="2" min="1" />
+          </div>
+        </div>
+        <div class="input-row">
+          <div>
+            <label>每个生产数量</label>
+            <input id="pc-items" type="number" value="3" min="1" />
+          </div>
+          <div>
+            <label>进程内存 (KB)</label>
+            <input id="pc-mem" type="number" value="16" min="1" />
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button onclick="runPCDemo()">触发生产/消费</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -396,6 +433,8 @@
               <tr>
                 <th>PID</th>
                 <th>Name</th>
+                <th>角色</th>
+                <th>进度</th>
                 <th>State</th>
                 <th>Q</th>
                 <th>时间片</th>
@@ -595,6 +634,22 @@
         await refresh();
       }
 
+      async function runPCDemo() {
+        const payload = {
+          path: document.getElementById("pc-path").value || "/data/buffer.txt",
+          producers: Number(document.getElementById("pc-prod").value || 1),
+          consumers: Number(document.getElementById("pc-cons").value || 1),
+          items_per_producer: Number(document.getElementById("pc-items").value || 1),
+          mem_kb_each: Number(document.getElementById("pc-mem").value || 8),
+        };
+        await fetchJson("/api/pc_demo", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setStatus("已生成生产者/消费者场景");
+        await refresh();
+      }
+
       async function seedDemo() {
         await fetchJson("/api/seed_demo", { method: "POST", body: "{}" });
         setStatus("已生成示例数据");
@@ -672,6 +727,8 @@
           tr.innerHTML = `
             <td>${p.pid}</td>
             <td style="color:${pidColor(p.pid)}">${p.name}</td>
+            <td>${p.role || "-"}</td>
+            <td>${(p.items_done || 0)} / ${(p.items_goal || 0)}</td>
             <td>${p.state}</td>
             <td>${p.queue}</td>
             <td>${p.slice_left}</td>

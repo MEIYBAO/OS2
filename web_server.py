@@ -16,7 +16,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
-from test import (
+from os_core import (
     DEFAULT_MEM_SIZE_KB,
     DEFAULT_PAGE_SIZE_KB,
     DEFAULT_PROC_MEM_KB,
@@ -79,6 +79,10 @@ def _pcb_to_dict(pcb) -> Dict[str, Any]:
         "ram_pool": list(pcb.ram_pool),
         "ram_fifo": list(pcb.ram_fifo),
         "page_table": _page_table_rows(pcb),
+        "role": getattr(pcb, "role", None),
+        "target_file": getattr(pcb, "target_file", None),
+        "items_goal": getattr(pcb, "items_goal", 0),
+        "items_done": getattr(pcb, "items_done", 0),
     }
 
 
@@ -188,6 +192,8 @@ class OSRequestHandler(SimpleHTTPRequestHandler):
                 return self._handle_create(data)
             if self.path == "/api/run_file":
                 return self._handle_run_file(data)
+            if self.path == "/api/pc_demo":
+                return self._handle_pc_demo(data)
             if self.path == "/api/kill":
                 return self._handle_kill(data)
             if self.path == "/api/fs/mkdir":
@@ -244,6 +250,22 @@ class OSRequestHandler(SimpleHTTPRequestHandler):
         mem_each = int(data.get("mem_kb_each", DEFAULT_PROC_MEM_KB))
         with STATE.lock:
             STATE.os.run_file_spawn_processes(path, nprocs=nprocs, mem_kb_each=mem_each)
+        return self._send_json(build_snapshot())
+
+    def _handle_pc_demo(self, data: Dict[str, Any]) -> None:
+        path = (data.get("path") or "/data/buffer.txt").strip()
+        prod = int(data.get("producers", 2))
+        cons = int(data.get("consumers", 2))
+        items = int(data.get("items_per_producer", 3))
+        mem_each = int(data.get("mem_kb_each", DEFAULT_PROC_MEM_KB))
+        with STATE.lock:
+            STATE.os.run_prod_consumer(
+                file_path=path,
+                producers=prod,
+                consumers=cons,
+                items_per_producer=items,
+                mem_kb_each=mem_each,
+            )
         return self._send_json(build_snapshot())
 
     def _handle_kill(self, data: Dict[str, Any]) -> None:

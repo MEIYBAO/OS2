@@ -823,11 +823,9 @@ class MiniOS:
             return False
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             return False
-        # 仅当跑完一轮任务或到达一半（第二块）时允许 I/O
-        half_point = max(1, len(pcb.access_seq) // 2)
-        reached_half = pcb.pc >= half_point
+        # 每执行完一块即可尝试 I/O；pc==0 时不触发
         reached_full = pcb.pc >= len(pcb.access_seq)
-        if not (reached_half or reached_full):
+        if pcb.pc <= 0:
             return False
 
         buf = self.pc_buffer

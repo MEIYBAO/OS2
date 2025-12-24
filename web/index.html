@@ -229,6 +229,88 @@
         grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       }
 
+      .circle-buffer {
+        position: relative;
+        width: 280px;
+        height: 280px;
+        margin: 10px auto 0;
+      }
+
+      .circle-buffer .slot {
+        position: absolute;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%)
+          rotate(calc(360deg / var(--count) * var(--i)))
+          translate(var(--radius))
+          rotate(calc(360deg / var(--count) * -1 * var(--i)));
+        border: 2px solid #1f2937;
+        background: #f0f2f6;
+        color: #1f2937;
+        font-weight: 700;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+      }
+
+      .circle-buffer .slot.has-item {
+        background: #b9f3c7;
+        border-color: #2f7c3d;
+        color: #0f2315;
+      }
+
+      .circle-buffer .slot .mark {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        border: 1px solid #d8e2f2;
+      }
+
+      .circle-buffer .center-label {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .circle-buffer .pointer {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%)
+          rotate(calc(360deg / var(--count) * var(--i)))
+          translate(calc(var(--radius) + 26px))
+          rotate(calc(360deg / var(--count) * -1 * var(--i)));
+        font-size: 12px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 10px;
+        border: 1px solid currentColor;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+
+      .pointer.in {
+        color: #1a6bff;
+      }
+
+      .pointer.out {
+        color: #d12c3a;
+      }
+
       .frame {
         padding: 8px;
         border-radius: 10px;
@@ -857,30 +939,65 @@
         const outPtr = bufState.out ?? 0;
 
         pcCap.textContent = `容量 ${cap} | in=${inPtr} , out=${outPtr}`;
+
+        // 指针文字说明
         ["in", "out"].forEach((label) => {
           if (!cap) return;
           const chip = document.createElement("div");
           chip.className = "chip";
-          chip.style.borderColor = label === "in" ? "#ff7a45" : "#00b2ff";
-          chip.style.background = label === "in" ? "#fff1e6" : "#e5f6ff";
-          chip.textContent = `${label.toUpperCase()} 指针 ${(label === "in" ? inPtr : outPtr)} ( (x+1)%${safeCap} )`;
+          chip.style.borderColor = label === "in" ? "#1a6bff" : "#d12c3a";
+          chip.style.background = label === "in" ? "#e5f0ff" : "#ffe8ec";
+          chip.textContent =
+            label === "in"
+              ? `IN 指针 -> 下一次放入位置 ${inPtr} ( (x+1)%${safeCap} )`
+              : `OUT 指针 -> 下一次取出位置 ${outPtr} ( (x+1)%${safeCap} )`;
           pcPointer.appendChild(chip);
         });
 
+        const ring = document.createElement("div");
+        ring.className = "circle-buffer";
+        ring.style.setProperty("--count", Math.max(cap, 1));
+        ring.style.setProperty("--radius", cap <= 4 ? "80px" : "110px");
+
+        const centerLabel = document.createElement("div");
+        centerLabel.className = "center-label";
+        centerLabel.innerHTML = `<div>环形缓冲池</div><div class="small">${bufState.count}/${cap}</div>`;
+        ring.appendChild(centerLabel);
+
         for (let i = 0; i < cap; i++) {
           const div = document.createElement("div");
-          div.className = "frame";
+          div.className = "slot";
+          div.style.setProperty("--i", i);
           const item = items[i];
           const owned = item !== undefined && item !== null;
+          if (owned) {
+            div.classList.add("has-item");
+          }
+          div.textContent = owned ? "有产品" : "空";
           const marks = [];
           if (i === inPtr) marks.push("IN");
-          if (i === outPtr && cap) marks.push("OUT");
-          div.style.background = owned ? "#c7f7da" : "#f3f7ff";
-          div.style.color = owned ? "#0a0f1d" : "#223047";
-          const markText = marks.length ? `<br/><span class="small">${marks.join(" | ")}</span>` : "";
-          div.innerHTML = `<span class="tag">槽位 ${i}</span>${owned ? item : "空"}${markText}`;
-          pcBufferGrid.appendChild(div);
+          if (i === outPtr) marks.push("OUT");
+          if (marks.length) {
+            const m = document.createElement("div");
+            m.className = "mark";
+            m.textContent = marks.join(" | ");
+            div.appendChild(m);
+          }
+          ring.appendChild(div);
         }
+
+        const addPointer = (label, idx, cls) => {
+          if (!cap) return;
+          const p = document.createElement("div");
+          p.className = `pointer ${cls}`;
+          p.style.setProperty("--i", idx % cap);
+          p.textContent = label;
+          ring.appendChild(p);
+        };
+        addPointer("C/OUT", outPtr, "out");
+        addPointer("P/IN", inPtr, "in");
+
+        pcBufferGrid.appendChild(ring);
       }
 
       function setStatus(msg, isError = false) {

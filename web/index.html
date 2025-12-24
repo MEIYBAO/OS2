@@ -402,13 +402,19 @@
       gap: 6px;
     }
 
-    .chip {
-      padding: 5px 8px;
-      border-radius: 10px;
-      background: #eef3ff;
-      border: 1px solid #dfe7ff;
-      font-size: 12px;
-    }
+      .chip {
+        padding: 5px 8px;
+        border-radius: 10px;
+        background: #eef3ff;
+        border: 1px solid #dfe7ff;
+        font-size: 12px;
+      }
+
+      .chip.pid {
+        font-weight: 600;
+        border-width: 2px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      }
 
     pre.log {
       background: #0f172a;
@@ -658,7 +664,8 @@
       }
     }
   </style>
-</head>
+    </style>
+  </head>
 
 <body>
   <div class="hero">
@@ -690,10 +697,10 @@
           <input id="mem-size" type="number" value="64" min="1" />
         </div>
         <div>
-          <label>虚存大小 (KB)</label>
-          <input id="vm-size" type="number" value="256" min="1" />
+            <label>虚存大小 (KB)</label>
+            <input id="vm-size" type="number" value="128" min="1" />
+          </div>
         </div>
-      </div>
       <div class="init-actions">
         <button class="primary" onclick="initSystem()">重新初始化</button>
       </div>
@@ -704,11 +711,11 @@
       <div class="input-row">
         <div>
           <label>生产者数</label>
-          <input id="pc-prod" type="number" value="2" min="1" />
+          <input id="pc-prod" type="number" value="4" min="1" />
         </div>
         <div>
           <label>消费者数</label>
-          <input id="pc-cons" type="number" value="2" min="1" />
+          <input id="pc-cons" type="number" value="4" min="1" />
         </div>
         <div>
           <label>每个生产数量 (0=无限)</label>
@@ -776,9 +783,9 @@
         </div>
       </div>
       <div id="ram-grid" class="ram-grid" style="margin-bottom:10px;"></div>
-      <h3 style="margin-top: 8px;">交换分区帧</h3>
-      <div id="swap-grid" class="swap-grid"></div>
-    </div>
+        <h3 style="margin-top: 8px;">虚拟内存帧</h3>
+        <div id="swap-grid" class="swap-grid"></div>
+      </div>
 
     <div class="card">
       <h3>生产者/消费者缓冲区</h3>
@@ -857,7 +864,7 @@
     let currentState = null;
     let autoTimer = null;
     let autoInterval = Number(autoInput.value) || 400;
-    const mlfqQuanta = [4, 8, 16];
+    const mlfqQuanta = [2, 4, 8];
 
     const palette = {};
     function pidColor(pid) {
@@ -929,12 +936,16 @@
         const runningProc = state.processes.find((p) => p.pid === state.running_pid);
         cpuRunning.textContent = `PID ${state.running_pid}`;
         cpuRunning.style.color = pidColor(state.running_pid);
+        cpuRunning.style.background = pidColor(state.running_pid) + "15";
+        cpuRunning.style.padding = "4px 8px";
+        cpuRunning.style.borderRadius = "8px";
         cpuSlice.textContent = runningProc
           ? `剩余时间片 ${runningProc.slice_left} | 队列 Q${runningProc.queue}`
           : "运行中";
       } else {
         cpuRunning.textContent = "无";
         cpuRunning.style.color = "#0f172a";
+        cpuRunning.style.background = "transparent";
         cpuSlice.textContent = "等待调度";
       }
 
@@ -959,9 +970,11 @@
         } else {
           q.forEach((pid) => {
             const chip = document.createElement("div");
-            chip.className = "queue-chip";
-            chip.style.background = pidColor(pid) + "22";
-            chip.style.borderColor = pidColor(pid);
+            chip.className = "queue-chip pid";
+            const c = pidColor(pid);
+            chip.style.background = c + "22";
+            chip.style.borderColor = c;
+            chip.style.color = c;
             chip.textContent = `PID ${pid}`;
             body.appendChild(chip);
           });
@@ -1167,3 +1180,4 @@
 </body>
 
 </html>
+

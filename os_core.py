@@ -18,13 +18,13 @@ STATE_RUNNING = "RUNNING"
 STATE_BLOCKED = "BLOCKED"
 STATE_TERMINATED = "TERMINATED"
 
-MLFQ_QUANTA = [4, 8, 16]
+MLFQ_QUANTA = [2, 4, 8]
 BOOST_PERIOD = 20
 PAGEFAULT_BLOCK_TICKS = 2
 
 DEFAULT_PAGE_SIZE_KB = 4
 DEFAULT_MEM_SIZE_KB = 64
-DEFAULT_VM_SIZE_KB = 256
+DEFAULT_VM_SIZE_KB = 128
 
 DEFAULT_PROC_MEM_KB = 16
 DEFAULT_PROC_WORK = 60
@@ -367,10 +367,12 @@ class MLFQScheduler:
         self.queues[pcb.queue_level].append(pcb.pid)
 
     def requeue_after_unblock(self, pcb: PCB) -> None:
-        # 阻塞恢复：回到最高优先级队列，使用该队列时间片
-        pcb.queue_level = 0
-        pcb.slice_left = MLFQ_QUANTA[0]
-        self.queues[0].append(pcb.pid)
+        # 阻塞恢复：返回原队列，继续剩余时间片（至少 1）
+        lvl = min(max(pcb.queue_level, 0), self.levels - 1)
+        pcb.queue_level = lvl
+        if pcb.slice_left <= 0:
+            pcb.slice_left = 1
+        self.queues[lvl].append(pcb.pid)
 
     def requeue_after_preempt(self, pcb: PCB) -> None:
         # 被抢占：保持当前队列，保留剩余时间片（至少1 tick），排到队尾
@@ -626,8 +628,8 @@ class MiniOS:
 
     def run_prod_consumer(
         self,
-        producers: int = 2,
-        consumers: int = 2,
+        producers: int = 4,
+        consumers: int = 4,
         items_per_producer: int = 0,
         items_per_consumer: int = 0,
         mem_kb_each: int = DEFAULT_PROC_MEM_KB,
@@ -658,24 +660,26 @@ class MiniOS:
             pcb = self.create_process(
                 name=f"producer#{i+1}",
                 mem_kb=mem_kb_each,
-                work_len=(items_per_producer or 8) * 4,
+                work_len=16,
                 from_file=None,
                 salt=i + 10,
             )
             pcb.role = "producer"
             pcb.items_goal = 0 if prod_infinite else items_per_producer
+            pcb.ready_to_io = False
             created.append(pcb)
 
         for j in range(consumers):
             pcb = self.create_process(
                 name=f"consumer#{j+1}",
                 mem_kb=mem_kb_each,
-                work_len=(target_consume or 8) * 4,
+                work_len=16,
                 from_file=None,
                 salt=j + 100,
             )
             pcb.role = "consumer"
             pcb.items_goal = 0 if cons_infinite else target_consume
+            pcb.ready_to_io = False
             created.append(pcb)
 
         self.log(
@@ -707,8 +711,7 @@ class MiniOS:
             if nxt is not None:
                 p = self.pcbs[nxt]
                 p.state = STATE_RUNNING
-                if p.slice_left <= 0:
-                    p.slice_left = MLFQ_QUANTA[p.queue_level]
+                p.slice_left = MLFQ_QUANTA[p.queue_level]
                 self.sched.running_pid = nxt
                 self.log(
                     f"调度：PID={nxt} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
@@ -719,8 +722,7 @@ class MiniOS:
                 if fallback is not None:
                     p = self.pcbs[fallback]
                     p.state = STATE_RUNNING
-                    if p.slice_left <= 0:
-                        p.slice_left = MLFQ_QUANTA[p.queue_level]
+                    p.slice_left = MLFQ_QUANTA[p.queue_level]
                     self.sched.running_pid = fallback
                     self.log(
                         f"调度(兜底)：PID={fallback} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
@@ -754,8 +756,7 @@ class MiniOS:
                 return
             p = self.pcbs[nxt]
             p.state = STATE_RUNNING
-            if p.slice_left <= 0:
-                p.slice_left = MLFQ_QUANTA[p.queue_level]
+            p.slice_left = MLFQ_QUANTA[p.queue_level]
             self.sched.running_pid = nxt
             self.log(
                 f"调度：PID={nxt} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
@@ -822,7 +823,11 @@ class MiniOS:
             return False
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             return False
-        if not getattr(pcb, "_pc_ready_for_io", False):
+        # 仅当跑完一轮任务或到达一半（第二块）时允许 I/O
+        half_point = max(1, len(pcb.access_seq) // 2)
+        reached_half = pcb.pc >= half_point
+        reached_full = pcb.pc >= len(pcb.access_seq)
+        if not (reached_half or reached_full):
             return False
 
         buf = self.pc_buffer
@@ -875,6 +880,15 @@ class MiniOS:
                 f"Consume: PID={pcb.pid} <- buffer get {consumed} from slot {take_slot} (done {pcb.items_done}/{pcb.items_goal}; buf {self.pc_buffer_count}/{cap}; out->{self.pc_out_ptr})"
             )
             self._wake_one_producer()
+
+        # 完成一次任务后，重置进程到 Q0，pc 清零，继续下一次任务
+        if reached_full:
+            pcb.pc = 0
+            pcb.remaining = len(pcb.access_seq)
+            pcb.queue_level = 0
+            pcb.slice_left = MLFQ_QUANTA[0]
+            pcb.state = STATE_READY
+            self.sched.requeue_after_unblock(pcb)
 
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             self.finish_process(pcb.pid, reason=f"{pcb.role} done")

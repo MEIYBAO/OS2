@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MiniOS 教学演示板</title>
+    <title>MiniOS 教学演示�?/title>
     <style>
       :root {
         --bg: #f6fbff;
@@ -168,6 +168,10 @@
 
       .grid.cols-2 {
         grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      }
+
+      .grid.cols-4 {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       }
 
       .card {
@@ -474,32 +478,32 @@
     <div class="hero">
       <div class="title-block">
         <p class="eyebrow">MiniOS 教学演示</p>
-        <h1>调度 · 分页 · 同步一屏展示</h1>
-        <div class="subtitle">亮色对比，按钮即点即演，帮助学生一眼看懂执行流程</div>
+        <h1>调度 · 分页 · 同步一屏展�?/h1>
+        <div class="subtitle">亮色对比，按钮即点即演，帮助学生一眼看懂执行流�?/div>
         <div class="steps">
-          <span class="step-pill">1. 设定页/内存</span>
-          <span class="step-pill">2. 创建或生成进程</span>
-          <span class="step-pill">3. 点击前进或自动运行</span>
+          <span class="step-pill">1. 设定�?内存</span>
+          <span class="step-pill">2. 创建或生成进�?/span>
+          <span class="step-pill">3. 点击前进或自动运�?/span>
         </div>
       </div>
       <div class="hero-actions">
-        <button onclick="tick(1)">前进一步</button>
-        <button onclick="tick(5)">前进 5 步</button>
+        <button onclick="tick(1)">前进一�?/button>
+        <button onclick="tick(5)">前进 5 �?/button>
         <div class="flex" style="gap:6px">
           <label>自动间隔(ms)</label>
           <input id="auto-interval" type="number" value="400" min="50" step="50" style="width:90px" />
         </div>
         <button class="primary" id="auto-btn" onclick="toggleAuto()">自动运行</button>
       </div>
-      <div class="status-bar" id="status-bar">就绪，先设置参数再创建进程或点击“生成示例”。</div>
+      <div class="status-bar" id="status-bar">就绪，先设置参数再创建进程或点击“生成示例”�?/div>
     </div>
 
     <div class="grid cols-2">
       <div class="card">
-        <h3>系统初始化</h3>
+        <h3>系统初始�?/h3>
         <div class="input-row">
           <div>
-            <label>页大小 (KB)</label>
+            <label>页大�?(KB)</label>
             <input id="page-size" type="number" value="4" min="1" />
           </div>
           <div>
@@ -512,13 +516,13 @@
           </div>
         </div>
         <div class="flex" style="margin-top: 10px">
-          <button class="primary" onclick="initSystem()">重新初始化</button>
+          <button class="primary" onclick="initSystem()">重新初始�?/button>
           <span class="small" id="cfg-text"></span>
         </div>
       </div>
 
       <div class="card">
-        <h3>生产者-消费者示例</h3>
+        <h3>生产�?消费者示�?/h3>
         <div class="input-row">
           <div>
             <label>生产者数</label>
@@ -543,7 +547,7 @@
         </div>
         <div class="flex" style="margin-top: 10px">
           <button onclick="runPCDemo()">触发生产/消费</button>
-          <span class="small">内置缓冲区，无需文件管理。</span>
+          <span class="small">内置缓冲区，无需文件管理�?/span>
         </div>
       </div>
     </div>
@@ -553,20 +557,20 @@
         <div class="cpu-now">
           <div>
             <div class="small">当前运行</div>
-            <h3 id="cpu-running">无</h3>
+            <h3 id="cpu-running">�?/h3>
           </div>
           <div class="small" id="cpu-slice"></div>
         </div>
-        <h3>CPU 与多级队列</h3>
+        <h3>CPU 与多级队�?/h3>
         <div class="flex" style="margin: 6px 0 10px">
           <span class="pill">时钟 <span id="tick-val">0</span></span>
-          <span class="pill">运行中 <span id="running-pid">无</span></span>
+          <span class="pill">运行�?<span id="running-pid">�?/span></span>
         </div>
         <div id="queues" class="stacked small"></div>
       </div>
 
       <div class="card">
-        <h3>进程表</h3>
+        <h3>进程�?/h3>
         <div style="overflow: auto; max-height: 260px">
           <table id="proc-table">
             <thead>
@@ -575,9 +579,9 @@
                 <th>名称</th>
                 <th>角色</th>
                 <th>进度</th>
-                <th>状态</th>
+                <th>状�?/th>
                 <th>Q</th>
-                <th>时间片</th>
+                <th>时间�?/th>
                 <th>PC</th>
                 <th>剩余</th>
                 <th>缺页</th>
@@ -594,9 +598,9 @@
     <div class="grid cols-2" style="margin-top: 12px">
       <div class="card">
         <div class="flex" style="justify-content: space-between">
-          <h3>物理内存帧</h3>
+          <h3>物理内存�?/h3>
           <div class="legend">
-            <span>深色=已占用</span>
+            <span>深色=已占�?/span>
             <span>浅色=预留/空闲</span>
           </div>
         </div>
@@ -604,14 +608,14 @@
       </div>
 
       <div class="card">
-        <h3>交换分区帧</h3>
+        <h3>交换分区�?/h3>
         <div id="swap-grid" class="swap-grid"></div>
       </div>
     </div>
 
     <div class="grid cols-2" style="margin-top: 12px">
       <div class="card">
-        <h3>生产者-消费者缓冲区</h3>
+        <h3>生产�?消费者缓冲区</h3>
         <div class="flex small" style="justify-content: space-between; margin-bottom: 6px;">
           <div class="chip-row" id="pc-pointer"></div>
           <div class="small" id="pc-cap"></div>
@@ -629,11 +633,11 @@
       <div class="card">
         <h3>教学提示</h3>
         <ul class="tip-list">
-          <li>点击“重新初始化”可快速重置页大小与内存容量。</li>
-          <li>“生成示例”会创建示例进程，直接前进或自动运行即可观察调度。</li>
-          <li>颜色对应 PID，越深表示正在占用；浅色表示空闲或预留。</li>
-          <li>点击进程行弹出该进程页表，悬浮窗关闭后继续观看。</li>
-          <li>生产/消费示例用内置缓冲区，环形 in/out 指针随生产/消费移动。</li>
+          <li>点击“重新初始化”可快速重置页大小与内存容量�?/li>
+          <li>“生成示例”会创建示例进程，直接前进或自动运行即可观察调度�?/li>
+          <li>颜色对应 PID，越深表示正在占用；浅色表示空闲或预留�?/li>
+          <li>点击进程行弹出该进程页表，悬浮窗关闭后继续观看�?/li>
+          <li>生产/消费示例用内置缓冲区，环�?in/out 指针随生�?消费移动�?/li>
         </ul>
       </div>
       <div class="card">
@@ -657,9 +661,9 @@
             <thead>
               <tr>
                 <th>VPN</th>
-                <th>在内存</th>
-                <th>RAM 帧</th>
-                <th>虚拟内存帧</th>
+                <th>在内�?/th>
+                <th>RAM �?/th>
+                <th>虚拟内存�?/th>
               </tr>
             </thead>
             <tbody id="pt-table"></tbody>
@@ -740,15 +744,15 @@
           work: Number(document.getElementById("proc-work").value || 60),
         };
         await fetchJson("/api/create", { method: "POST", body: JSON.stringify(payload) });
-        setStatus("已创建进程");
+        setStatus("已创建进�?);
         await refresh();
       }
 
       async function killProc() {
         const pid = Number(document.getElementById("kill-pid").value);
-        if (!pid) return setStatus("请输入要终止的 PID");
+        if (!pid) return setStatus("请输入要终止�?PID");
         await fetchJson("/api/kill", { method: "POST", body: JSON.stringify({ pid }) });
-        setStatus(`已终止 PID ${pid}`);
+        setStatus(`已终�?PID ${pid}`);
         await refresh();
       }
 
@@ -764,13 +768,13 @@
           method: "POST",
           body: JSON.stringify(payload),
         });
-        setStatus("已创建生产者/消费者并重置缓冲区");
+        setStatus("已创建生产�?消费者并重置缓冲�?);
         await refresh();
       }
 
       async function seedDemo() {
         await fetchJson("/api/seed_demo", { method: "POST", body: "{}" });
-        setStatus("已生成示例数据");
+        setStatus("已生成示例数�?);
         await refresh();
       }
 
@@ -785,18 +789,18 @@
       }
 
       function render(state) {
-        cfgText.textContent = `页 ${state.config.page_kb} KB | 内存 ${state.config.mem_kb} KB (${state.config.ram_frames} 帧) | 虚存 ${state.config.vm_kb} KB (${state.config.swap_frames} 帧)`;
+        cfgText.textContent = `�?${state.config.page_kb} KB | 内存 ${state.config.mem_kb} KB (${state.config.ram_frames} �? | 虚存 ${state.config.vm_kb} KB (${state.config.swap_frames} �?`;
         tickVal.textContent = state.ticks;
-        runningPid.textContent = state.running_pid || "无";
+        runningPid.textContent = state.running_pid || "�?;
         if (state.running_pid) {
           const runningProc = state.processes.find((p) => p.pid === state.running_pid);
           cpuRunning.textContent = `PID ${state.running_pid}`;
           cpuRunning.style.color = pidColor(state.running_pid);
           cpuSlice.textContent = runningProc
-            ? `剩余时间片 ${runningProc.slice_left} | 队列 Q${runningProc.queue}`
-            : "运行中";
+            ? `剩余时间�?${runningProc.slice_left} | 队列 Q${runningProc.queue}`
+            : "运行�?;
         } else {
-          cpuRunning.textContent = "无";
+          cpuRunning.textContent = "�?;
           cpuRunning.style.color = "#0f172a";
           cpuSlice.textContent = "等待调度";
         }
@@ -811,7 +815,7 @@
           if (!q.length) {
             const empty = document.createElement("div");
             empty.className = "chip";
-            empty.textContent = "空";
+            empty.textContent = "�?;
             row.appendChild(empty);
           } else {
             q.forEach((pid) => {
@@ -930,8 +934,8 @@
           chip.style.background = label === "in" ? "#e5f0ff" : "#ffe8ec";
           chip.textContent =
             label === "in"
-              ? `IN 指针 -> 下一次放入位置 ${inPtr} ( (x+1)%${safeCap} )`
-              : `OUT 指针 -> 下一次取出位置 ${outPtr} ( (x+1)%${safeCap} )`;
+              ? `IN 指针 -> 下一次放入位�?${inPtr} ( (x+1)%${safeCap} )`
+              : `OUT 指针 -> 下一次取出位�?${outPtr} ( (x+1)%${safeCap} )`;
           pcPointer.appendChild(chip);
         });
 
@@ -942,7 +946,7 @@
 
         const centerLabel = document.createElement("div");
         centerLabel.className = "center-label";
-        centerLabel.innerHTML = `<div>环形缓冲池</div><div class="small">${bufState.count}/${cap}</div>`;
+        centerLabel.innerHTML = `<div>环形缓冲�?/div><div class="small">${bufState.count}/${cap}</div>`;
         ring.appendChild(centerLabel);
 
         for (let i = 0; i < cap; i++) {
@@ -954,7 +958,7 @@
           if (owned) {
             div.classList.add("has-item");
           }
-          div.textContent = owned ? "有产品" : "空";
+          div.textContent = owned ? "有产�? : "�?;
           const marks = [];
           if (i === inPtr) marks.push("IN");
           if (i === outPtr) marks.push("OUT");
@@ -1000,7 +1004,7 @@
           clearInterval(autoTimer);
           autoTimer = null;
           autoBtn.textContent = "自动运行";
-          setStatus("自动运行已停止");
+          setStatus("自动运行已停�?);
         } else {
           autoTimer = setInterval(() => {
             tick(1).catch((err) => setStatus(err.message, true));
@@ -1021,7 +1025,7 @@
           }, autoInterval);
           setStatus(`自动运行中，间隔 ${autoInterval} ms`);
         } else {
-          setStatus(`自动间隔设置为 ${autoInterval} ms`);
+          setStatus(`自动间隔设置�?${autoInterval} ms`);
         }
       });
 
@@ -1029,3 +1033,4 @@
     </script>
   </body>
 </html>
+

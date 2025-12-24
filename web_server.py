@@ -264,12 +264,14 @@ class OSRequestHandler(SimpleHTTPRequestHandler):
         prod = int(data.get("producers", 2))
         cons = int(data.get("consumers", 2))
         items = int(data.get("items_per_producer", 0))
+        items_cons = int(data.get("items_per_consumer", 0))
         mem_each = int(data.get("mem_kb_each", DEFAULT_PROC_MEM_KB))
         with STATE.lock:
             STATE.os.run_prod_consumer(
                 producers=prod,
                 consumers=cons,
                 items_per_producer=items,
+                items_per_consumer=items_cons,
                 mem_kb_each=mem_each,
             )
         return self._send_json(build_snapshot())

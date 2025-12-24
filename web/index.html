@@ -483,7 +483,6 @@
         </div>
       </div>
       <div class="hero-actions">
-        <button class="ghost" onclick="seedDemo()">生成示例</button>
         <button onclick="tick(1)">前进一步</button>
         <button onclick="tick(5)">前进 5 步</button>
         <div class="flex" style="gap:6px">
@@ -495,7 +494,7 @@
       <div class="status-bar" id="status-bar">就绪，先设置参数再创建进程或点击“生成示例”。</div>
     </div>
 
-    <div class="grid cols-3">
+    <div class="grid cols-2">
       <div class="card">
         <h3>系统初始化</h3>
         <div class="input-row">
@@ -519,29 +518,6 @@
       </div>
 
       <div class="card">
-        <h3>创建/终止进程</h3>
-        <div class="input-row">
-          <div>
-            <label>名称</label>
-            <input id="proc-name" type="text" value="P" />
-          </div>
-          <div>
-            <label>内存 (KB)</label>
-            <input id="proc-mem" type="number" value="16" min="1" />
-          </div>
-          <div>
-            <label>工作量</label>
-            <input id="proc-work" type="number" value="60" min="1" />
-          </div>
-        </div>
-        <div class="flex" style="margin-top: 10px">
-          <button onclick="createProc()">创建进程</button>
-          <input id="kill-pid" type="number" placeholder="PID" style="max-width: 120px" />
-          <button class="danger" onclick="killProc()">终止 PID</button>
-        </div>
-      </div>
-
-      <div class="card">
         <h3>生产者-消费者示例</h3>
         <div class="input-row">
           <div>
@@ -555,6 +531,10 @@
           <div>
             <label>每个生产数量 (0=无限)</label>
             <input id="pc-items" type="number" value="0" min="0" />
+          </div>
+          <div>
+            <label>每个消费数量 (0=无限)</label>
+            <input id="pc-items-cons" type="number" value="0" min="0" />
           </div>
           <div>
             <label>进程内存 (KB)</label>
@@ -777,6 +757,7 @@
           producers: Number(document.getElementById("pc-prod").value || 1),
           consumers: Number(document.getElementById("pc-cons").value || 1),
           items_per_producer: Number(document.getElementById("pc-items").value || 0),
+          items_per_consumer: Number(document.getElementById("pc-items-cons").value || 0),
           mem_kb_each: Number(document.getElementById("pc-mem").value || 8),
         };
         await fetchJson("/api/pc_demo", {

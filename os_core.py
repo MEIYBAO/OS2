@@ -452,6 +452,8 @@ class MiniOS:
         self.pc_buffer_count = 0
         self.pc_in_ptr = 0
         self.pc_out_ptr = 0
+        self.waiting_producers: List[int] = []
+        self.waiting_consumers: List[int] = []
 
     def log(self, msg: str) -> None:
         self.log_lines.append(f"[tick={self.ticks:04d}] {msg}")
@@ -627,6 +629,7 @@ class MiniOS:
         producers: int = 2,
         consumers: int = 2,
         items_per_producer: int = 0,
+        items_per_consumer: int = 0,
         mem_kb_each: int = DEFAULT_PROC_MEM_KB,
     ) -> List[PCB]:
         """创建生产者/消费者进程，使用内置缓冲池（容量 PC_BUFFER_CAPACITY）。"""
@@ -638,11 +641,16 @@ class MiniOS:
         self.pc_buffer_count = 0
         self.pc_in_ptr = 0
         self.pc_out_ptr = 0
+        self.waiting_producers = []
+        self.waiting_consumers = []
 
-        infinite_mode = items_per_producer <= 0
-        total_items = producers * items_per_producer if not infinite_mode else 0
-        items_per_consumer = (
-            math.ceil(total_items / consumers) if not infinite_mode else 0
+        prod_infinite = items_per_producer <= 0
+        cons_infinite = items_per_consumer <= 0
+        total_items = producers * items_per_producer if not prod_infinite else 0
+        target_consume = (
+            items_per_consumer
+            if items_per_consumer > 0
+            else (math.ceil(total_items / consumers) if not prod_infinite else 0)
         )
 
         created: List[PCB] = []
@@ -655,23 +663,23 @@ class MiniOS:
                 salt=i + 10,
             )
             pcb.role = "producer"
-            pcb.items_goal = 0 if infinite_mode else items_per_producer
+            pcb.items_goal = 0 if prod_infinite else items_per_producer
             created.append(pcb)
 
         for j in range(consumers):
             pcb = self.create_process(
                 name=f"consumer#{j+1}",
                 mem_kb=mem_kb_each,
-                work_len=(items_per_consumer or 8) * 4,
+                work_len=(target_consume or 8) * 4,
                 from_file=None,
                 salt=j + 100,
             )
             pcb.role = "consumer"
-            pcb.items_goal = 0 if infinite_mode else items_per_consumer
+            pcb.items_goal = 0 if cons_infinite else target_consume
             created.append(pcb)
 
         self.log(
-            f"生产者-消费者：内置缓冲池(cap={self.pc_buffer_capacity}) 生产者={producers}{'无限' if infinite_mode else '×'+str(items_per_producer)} 消费者={consumers}{'无限' if infinite_mode else '×'+str(items_per_consumer)}"
+            f"生产者-消费者：内置缓冲池(cap={self.pc_buffer_capacity}) 生产者={producers}{'无限' if prod_infinite else '×'+str(items_per_producer)} 消费者={consumers}{'无限' if cons_infinite else '×'+str(target_consume)}"
         )
         return created
 
@@ -681,13 +689,18 @@ class MiniOS:
 
         for pcb in list(self.pcbs.values()):
             if pcb.state == STATE_BLOCKED:
-                pcb.block_left -= 1
-                if pcb.block_left <= 0:
+                if pcb.block_left > 0:
+                    pcb.block_left -= 1
+                if pcb.block_left > 0:
+                    continue
+                if pcb.block_left == 0:
                     pcb.state = STATE_READY
                     self.sched.requeue_after_unblock(pcb)
                     self.log(
                         f"PID={pcb.pid} 调页完成 -> READY（入队Q{pcb.queue_level}）"
                     )
+                # block_left <0 表示等待事件唤醒，不在此处自动恢复
+                continue
 
         if self.sched.running_pid is None:
             nxt = self.sched.pick_next(self.pcbs)
@@ -700,6 +713,18 @@ class MiniOS:
                 self.log(
                     f"调度：PID={nxt} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
                 )
+            else:
+                # 防止队列状态意外丢失：直接从 READY 进程中兜底挑选一个
+                fallback = self._pick_ready_fallback()
+                if fallback is not None:
+                    p = self.pcbs[fallback]
+                    p.state = STATE_RUNNING
+                    if p.slice_left <= 0:
+                        p.slice_left = MLFQ_QUANTA[p.queue_level]
+                    self.sched.running_pid = fallback
+                    self.log(
+                        f"调度(兜底)：PID={fallback} -> RUNNING（Q{p.queue_level}, slice={p.slice_left}）"
+                    )
 
         if self.sched.running_pid is None:
             self.log("CPU 空闲（无READY进程）")
@@ -709,6 +734,8 @@ class MiniOS:
         if pcb is None or pcb.state != STATE_RUNNING:
             self.sched.running_pid = None
             return
+        # 本 tick 开始默认不能直接生产/消费，需先完成一次 CPU 执行
+        setattr(pcb, "_pc_ready_for_io", False)
 
         # 高优先级队列有就绪进程时抢占当前进程（保留剩余时间片，排回当前队列尾）
         ready_lvl = self.sched.highest_ready_level(self.pcbs)
@@ -767,6 +794,7 @@ class MiniOS:
         pcb.pc += 1
         pcb.remaining = max(0, len(pcb.access_seq) - pcb.pc)
         pcb.slice_left -= 1
+        setattr(pcb, "_pc_ready_for_io", True)
         self.log(
             f"执行：PID={pcb.pid} 命中VPN={vpn} RAMFrame={ent.frame_id} 剩余work={pcb.remaining} slice_left={pcb.slice_left}"
         )
@@ -794,6 +822,8 @@ class MiniOS:
             return False
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             return False
+        if not getattr(pcb, "_pc_ready_for_io", False):
+            return False
 
         buf = self.pc_buffer
         cap = getattr(self, "pc_buffer_capacity", PC_BUFFER_CAPACITY)
@@ -802,10 +832,13 @@ class MiniOS:
         if pcb.role == "producer":
             if count >= cap:
                 pcb.state = STATE_BLOCKED
-                pcb.block_left = PROD_BLOCK_TICKS
+                pcb.block_left = -1  # 等待空槽出现后被唤醒
+                if pcb.pid not in self.waiting_producers:
+                    self.waiting_producers.append(pcb.pid)
                 self.sched.running_pid = None
+                setattr(pcb, "_pc_ready_for_io", False)
                 self.log(
-                    f"Producer blocked: PID={pcb.pid} buffer full ({count}/{cap}) wait {PROD_BLOCK_TICKS} ticks"
+                    f"Producer blocked: PID={pcb.pid} buffer full ({count}/{cap}) -> wait for consumer to free slot"
                 )
                 return True
             put_slot = self.pc_in_ptr
@@ -814,16 +847,21 @@ class MiniOS:
             pcb.items_done += 1
             self.pc_in_ptr = (self.pc_in_ptr + 1) % cap
             self.pc_buffer_count = count + 1
+            setattr(pcb, "_pc_ready_for_io", False)
             self.log(
                 f"Produce: PID={pcb.pid} -> buffer put {item} at slot {put_slot} (done {pcb.items_done}/{pcb.items_goal}; buf {self.pc_buffer_count}/{cap}; in->{self.pc_in_ptr})"
             )
+            self._wake_one_consumer()
         else:
             if count <= 0:
                 pcb.state = STATE_BLOCKED
-                pcb.block_left = CONS_BLOCK_TICKS
+                pcb.block_left = -1  # 等待产品出现后被唤醒
+                if pcb.pid not in self.waiting_consumers:
+                    self.waiting_consumers.append(pcb.pid)
                 self.sched.running_pid = None
+                setattr(pcb, "_pc_ready_for_io", False)
                 self.log(
-                    f"Consumer blocked: PID={pcb.pid} buffer empty, wait {CONS_BLOCK_TICKS} ticks"
+                    f"Consumer blocked: PID={pcb.pid} buffer empty, wait for producer to supply"
                 )
                 return True
             take_slot = self.pc_out_ptr
@@ -832,9 +870,11 @@ class MiniOS:
             pcb.items_done += 1
             self.pc_out_ptr = (self.pc_out_ptr + 1) % cap
             self.pc_buffer_count = max(0, count - 1)
+            setattr(pcb, "_pc_ready_for_io", False)
             self.log(
                 f"Consume: PID={pcb.pid} <- buffer get {consumed} from slot {take_slot} (done {pcb.items_done}/{pcb.items_goal}; buf {self.pc_buffer_count}/{cap}; out->{self.pc_out_ptr})"
             )
+            self._wake_one_producer()
 
         if pcb.items_goal > 0 and pcb.items_done >= pcb.items_goal:
             self.finish_process(pcb.pid, reason=f"{pcb.role} done")
@@ -842,6 +882,42 @@ class MiniOS:
             return True
 
         return False
+
+    def _pick_ready_fallback(self) -> Optional[int]:
+        """兜底：在队列异常时，直接从 READY 进程里找一个优先级最低的 pid。"""
+        ready_pcbs = [
+            (pcb.queue_level, pid)
+            for pid, pcb in self.pcbs.items()
+            if pcb.state == STATE_READY
+        ]
+        if not ready_pcbs:
+            return None
+        ready_pcbs.sort(key=lambda x: (x[0], x[1]))
+        return ready_pcbs[0][1]
+
+    def _wake_one_producer(self) -> None:
+        while self.waiting_producers:
+            pid = self.waiting_producers.pop(0)
+            pcb = self.pcbs.get(pid)
+            if pcb is None or pcb.state != STATE_BLOCKED:
+                continue
+            pcb.block_left = 0
+            pcb.state = STATE_READY
+            self.sched.requeue_after_unblock(pcb)
+            self.log(f"Waken producer PID={pid} (slot available)")
+            break
+
+    def _wake_one_consumer(self) -> None:
+        while self.waiting_consumers:
+            pid = self.waiting_consumers.pop(0)
+            pcb = self.pcbs.get(pid)
+            if pcb is None or pcb.state != STATE_BLOCKED:
+                continue
+            pcb.block_left = 0
+            pcb.state = STATE_READY
+            self.sched.requeue_after_unblock(pcb)
+            self.log(f"Waken consumer PID={pid} (item available)")
+            break
 
 class MiniOSGUI:
     def __init__(self, root: tk.Tk):

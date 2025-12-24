@@ -1,993 +1,1169 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MiniOS 教学演示</title>
-    <style>
-      :root {
-        --bg: #f6fbff;
-        --card: #ffffff;
-        --ink: #0f172a;
-        --muted: #5b6b80;
-        --border: #e3edf7;
-        --accent: #ff7a45;
-        --accent-2: #00b2ff;
-        --accent-3: #54c063;
-        --shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
-        --pill: #f0f7ff;
-        --danger: #d01c40;
-      }
 
-      * {
-        box-sizing: border-box;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniOS 教学演示</title>
+  <style>
+    :root {
+      --bg: #f6fbff;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #5b6b80;
+      --border: #e3edf7;
+      --accent: #ff7a45;
+      --accent-2: #00b2ff;
+      --accent-3: #54c063;
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+      --pill: #f0f7ff;
+      --danger: #d01c40;
+    }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 18% 18%, #ffe8cd, #f6fbff 35%),
+        radial-gradient(circle at 82% 6%, #d1f1ff, #f6fbff 45%),
+        linear-gradient(125deg, #f9fbff, #f6fbff);
+      color: var(--ink);
+      padding: 18px 20px 38px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+
+    .hero {
+      display: grid;
+      align-items: center;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: linear-gradient(120deg, rgba(255, 122, 69, 0.12), rgba(0, 178, 255, 0.12));
+      box-shadow: var(--shadow);
+      border-radius: 16px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hero-title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+
+    .eyebrow {
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .steps {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-pill {
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: #fff6ed;
+      color: #c44c0b;
+      border: 1px solid #ffd7ba;
+      font-size: 12px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .hero-actions button {
+      white-space: nowrap;
+      min-height: 42px;
+    }
+
+    .hero-actions label {
+      white-space: nowrap;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      background: var(--card);
+      transition: transform 0.08s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-2);
+      box-shadow: 0 10px 30px rgba(0, 178, 255, 0.18);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #ff9f62);
+      color: #fff8f2;
+      font-weight: 700;
+      border: none;
+    }
+
+    button.ghost {
+      background: #f5f9ff;
+    }
+
+    button.danger {
+      border-color: #ffc6d1;
+      color: #b31236;
+      background: #fff1f4;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    input,
+    select,
+    textarea {
+      font: inherit;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f9fbff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .grid.cols-3.top-row {
+      grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.1fr) minmax(380px, 1.5fr);
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 14px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3,
+    .card h4 {
+      margin-bottom: 10px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #eef3fb;
+    }
+
+
+    /* proc table layout */
+    #proc-table {
+      table-layout: fixed;
+    }
+
+    #proc-table th,
+    #proc-table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #proc-table th:nth-child(1),
+    #proc-table td:nth-child(1) {
+      width: 56px;
+    }
+
+    #proc-table th:nth-child(2),
+    #proc-table td:nth-child(2) {
+      width: 140px;
+    }
+
+    #proc-table th:nth-child(3),
+    #proc-table td:nth-child(3) {
+      width: 100px;
+    }
+
+    #proc-table th:nth-child(4),
+    #proc-table td:nth-child(4) {
+      width: 90px;
+    }
+
+    #proc-table th:nth-child(5),
+    #proc-table td:nth-child(5) {
+      width: 50px;
+      text-align: center;
+    }
+
+    #proc-table th:nth-child(6),
+    #proc-table td:nth-child(6) {
+      width: 70px;
+      text-align: center;
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.2px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--pill);
+      border: 1px solid var(--border);
+    }
+
+    .ram-grid,
+    .swap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+      gap: 8px;
+    }
+
+    .buffer-grid {
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    }
+
+    .circle-buffer {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 10px auto 0;
+    }
+
+    .circle-buffer .slot {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotate(calc(360deg / var(--count) * var(--i))) translate(var(--radius)) rotate(calc(360deg / var(--count) * -1 * var(--i)));
+      border: 2px solid #1f2937;
+      background: #f0f2f6;
+      color: #1f2937;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+    }
+
+    .circle-buffer .slot.has-item {
+      background: #b9f3c7;
+      border-color: #2f7c3d;
+      color: #0f2315;
+    }
+
+    .circle-buffer .slot .mark {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid #d8e2f2;
+    }
+
+    .circle-buffer .center-label {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .circle-buffer .pointer {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotate(calc(360deg / var(--count) * var(--i))) translate(calc(var(--radius) + 26px)) rotate(calc(360deg / var(--count) * -1 * var(--i)));
+      font-size: 12px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 10px;
+      border: 1px solid currentColor;
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    .pointer.in {
+      color: #1a6bff;
+    }
+
+    .pointer.out {
+      color: #d12c3a;
+    }
+
+    .frame {
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      text-align: center;
+      font-size: 12px;
+      background: #f5f9ff;
+    }
+
+    .frame .tag {
+      font-weight: 700;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .stacked {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 5px 8px;
+      border-radius: 10px;
+      background: #eef3ff;
+      border: 1px solid #dfe7ff;
+      font-size: 12px;
+    }
+
+    pre.log {
+      background: #0f172a;
+      border: 1px solid #1f2a44;
+      padding: 10px;
+      border-radius: 10px;
+      color: #cbd5f5;
+      max-height: 260px;
+      overflow: auto;
+      font-size: 12px;
+    }
+
+    ul.tip-list {
+      list-style: none;
+      padding-left: 14px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      display: grid;
+      gap: 6px;
+    }
+
+    ul.tip-list li::before {
+      content: "*";
+      color: var(--accent);
+      margin-right: 6px;
+    }
+
+    .badge-text {
+      color: var(--accent-2);
+    }
+
+    .flex {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px 12px;
+      align-items: start;
+    }
+
+    .input-row>div {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .init-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .init-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      justify-content: flex-start;
+    }
+
+    .divider {
+      height: 1px;
+      border: none;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .status-bar {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      grid-column: 1 / -1;
+      text-align: right;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pt-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.28);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .pt-modal.open {
+      display: flex;
+    }
+
+    .pt-dialog {
+      width: min(720px, 96vw);
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--border);
+      padding: 14px 14px 16px;
+    }
+
+    .pt-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .cpu-now {
+      background: linear-gradient(135deg, #fff3e0, #fff);
+      border: 1px solid #ffb47a;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 12px 28px rgba(255, 140, 64, 0.18);
+      position: relative;
+    }
+
+    .cpu-now::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff7a45, #ffb47a);
+    }
+
+    .cpu-badge {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff7a45, #ffb47a);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 1.2px;
+      box-shadow: 0 8px 18px rgba(255, 122, 69, 0.35);
+    }
+
+    #cpu-running {
+      font-size: 22px;
+      margin-top: 4px;
+    }
+
+    .queue-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .queue-card {
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #f1e1c8;
+      background: #fff7e6;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .queue-card.level-1 {
+      border-color: #c9ead8;
+      background: #eaf8f1;
+    }
+
+    .queue-card.level-2 {
+      border-color: #f3c4c8;
+      background: #fdecec;
+    }
+
+    .queue-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .queue-slice {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .queue-body {
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 10px;
+      padding: 10px 12px;
+      min-height: 52px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .queue-empty {
+      margin: 0 auto;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    .queue-chip {
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5f5;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    @media (max-width: 720px) {
       body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Space Grotesk", "Segoe UI", "Microsoft YaHei", sans-serif;
-        background: radial-gradient(circle at 18% 18%, #ffe8cd, #f6fbff 35%),
-          radial-gradient(circle at 82% 6%, #d1f1ff, #f6fbff 45%),
-          linear-gradient(125deg, #f9fbff, #f6fbff);
-        color: var(--ink);
-        padding: 18px 20px 38px;
-      }
-
-      h1,
-      h2,
-      h3,
-      h4 {
-        margin: 0;
-        letter-spacing: 0.2px;
+        padding: 12px;
       }
 
       .hero {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 12px;
-        margin-bottom: 16px;
-        padding: 16px 18px;
-        border: 1px solid var(--border);
-        background: linear-gradient(120deg, rgba(255, 122, 69, 0.12), rgba(0, 178, 255, 0.12));
-        box-shadow: var(--shadow);
-        border-radius: 16px;
-      }
-
-      .title-block {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .eyebrow {
-        text-transform: uppercase;
-        font-size: 12px;
-        letter-spacing: 1.5px;
-        color: var(--accent);
-        margin: 0;
-      }
-
-      .subtitle {
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      .steps {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .step-pill {
-        padding: 6px 10px;
-        border-radius: 12px;
-        background: #fff6ed;
-        color: #c44c0b;
-        border: 1px solid #ffd7ba;
-        font-size: 12px;
+        grid-template-columns: 1fr;
       }
 
       .hero-actions {
-        display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        justify-content: flex-end;
-      }
-
-      button {
-        font: inherit;
-        cursor: pointer;
-        border-radius: 12px;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
-        color: var(--ink);
-        background: var(--card);
-        transition: transform 0.08s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-      }
-
-      button:hover {
-        transform: translateY(-1px);
-        border-color: var(--accent-2);
-        box-shadow: 0 10px 30px rgba(0, 178, 255, 0.18);
-      }
-
-      button.primary {
-        background: linear-gradient(135deg, var(--accent), #ff9f62);
-        color: #fff8f2;
-        font-weight: 700;
-        border: none;
-      }
-
-      button.ghost {
-        background: #f5f9ff;
-      }
-
-      button.danger {
-        border-color: #ffc6d1;
-        color: #b31236;
-        background: #fff1f4;
-      }
-
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-
-      input,
-      select,
-      textarea {
-        font: inherit;
-        padding: 8px 10px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: #f9fbff;
-        color: var(--ink);
-        outline: none;
-      }
-
-      textarea {
-        resize: vertical;
-      }
-
-      label {
-        font-size: 12px;
-        color: var(--muted);
-        letter-spacing: 0.3px;
-      }
-
-      .grid {
-        display: grid;
-        gap: 12px;
-      }
-
-      .grid.cols-3 {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-
-      .grid.cols-2 {
-        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      }
-
-      .card {
-        border: 1px solid var(--border);
-        background: var(--card);
-        padding: 14px;
-        border-radius: 14px;
-        box-shadow: var(--shadow);
-      }
-
-      .card h3,
-      .card h4 {
-        margin-bottom: 10px;
-      }
-
-      .small {
-        font-size: 12px;
-        color: var(--muted);
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-
-      th,
-      td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #eef3fb;
-      }
-
-      th {
-        text-align: left;
-        color: var(--muted);
-        font-size: 12px;
-        letter-spacing: 0.2px;
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 9px;
-        border-radius: 999px;
-        font-size: 12px;
-        background: var(--pill);
-        border: 1px solid var(--border);
-      }
-
-      .ram-grid,
-      .swap-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
-        gap: 8px;
-      }
-
-      .buffer-grid {
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      }
-
-      .circle-buffer {
-        position: relative;
-        width: 280px;
-        height: 280px;
-        margin: 10px auto 0;
-      }
-
-      .circle-buffer .slot {
-        position: absolute;
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%)
-          rotate(calc(360deg / var(--count) * var(--i)))
-          translate(var(--radius))
-          rotate(calc(360deg / var(--count) * -1 * var(--i)));
-        border: 2px solid #1f2937;
-        background: #f0f2f6;
-        color: #1f2937;
-        font-weight: 700;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
-      }
-
-      .circle-buffer .slot.has-item {
-        background: #b9f3c7;
-        border-color: #2f7c3d;
-        color: #0f2315;
-      }
-
-      .circle-buffer .slot .mark {
-        position: absolute;
-        bottom: 6px;
-        right: 6px;
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 10px;
-        padding: 2px 6px;
-        font-size: 10px;
-        font-weight: 700;
-        border: 1px solid #d8e2f2;
-      }
-
-      .circle-buffer .center-label {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        font-size: 12px;
-        color: var(--muted);
-        line-height: 1.4;
-      }
-
-      .circle-buffer .pointer {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%)
-          rotate(calc(360deg / var(--count) * var(--i)))
-          translate(calc(var(--radius) + 26px))
-          rotate(calc(360deg / var(--count) * -1 * var(--i)));
-        font-size: 12px;
-        font-weight: 800;
-        padding: 2px 6px;
-        border-radius: 10px;
-        border: 1px solid currentColor;
-        background: #fff;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-      }
-
-      .pointer.in {
-        color: #1a6bff;
-      }
-
-      .pointer.out {
-        color: #d12c3a;
-      }
-
-      .frame {
-        padding: 8px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        text-align: center;
-        font-size: 12px;
-        background: #f5f9ff;
-      }
-
-      .frame .tag {
-        font-weight: 700;
-        display: block;
-        margin-bottom: 3px;
-      }
-
-      .stacked {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .chip {
-        padding: 5px 8px;
-        border-radius: 10px;
-        background: #eef3ff;
-        border: 1px solid #dfe7ff;
-        font-size: 12px;
-      }
-
-      pre.log {
-        background: #0f172a;
-        border: 1px solid #1f2a44;
-        padding: 10px;
-        border-radius: 10px;
-        color: #cbd5f5;
-        max-height: 260px;
-        overflow: auto;
-        font-size: 12px;
-      }
-
-      ul.tip-list {
-        list-style: none;
-        padding-left: 14px;
-        margin: 0;
-        color: var(--muted);
-        font-size: 13px;
-        display: grid;
-        gap: 6px;
-      }
-
-      ul.tip-list li::before {
-        content: "*";
-        color: var(--accent);
-        margin-right: 6px;
-      }
-
-      .badge-text {
-        color: var(--accent-2);
-      }
-
-      .flex {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-
-      .input-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-        gap: 10px 12px;
-        align-items: start;
-      }
-
-      .input-row > div {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .divider {
-        height: 1px;
-        border: none;
-        background: var(--border);
-        margin: 10px 0;
+        justify-content: flex-start;
       }
 
       .status-bar {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 12px;
+        text-align: left;
       }
 
-      .legend {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        font-size: 12px;
-        color: var(--muted);
+      .init-grid {
+        grid-template-columns: 1fr;
       }
+    }
+  </style>
+</head>
 
-      .pt-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.28);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        z-index: 50;
-      }
-
-      .pt-modal.open {
-        display: flex;
-      }
-
-      .pt-dialog {
-        width: min(720px, 96vw);
-        background: #ffffff;
-        border-radius: 14px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
-        border: 1px solid var(--border);
-        padding: 14px 14px 16px;
-      }
-
-      .pt-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .cpu-now {
-        background: linear-gradient(135deg, #ffefdc, #fff);
-        border: 1px dashed #ffb47a;
-        padding: 10px 12px;
-        border-radius: 10px;
-        margin-bottom: 8px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-      }
-
-      @media (max-width: 720px) {
-        body {
-          padding: 12px;
-        }
-        .hero-actions {
-          justify-content: flex-start;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="hero">
-      <div class="title-block">
-        <p class="eyebrow">MiniOS 教学演示</p>
-        <h1>调度 · 分页 · 同步一屏展示</h1>
-        <div class="subtitle">亮色对比，按钮即点即演，帮助学生一眼看懂执行流程</div>
-        <div class="steps">
-          <span class="step-pill">1. 设定内存/虚存</span>
-          <span class="step-pill">2. 生成生产者/消费者</span>
-          <span class="step-pill">3. 前进或自动运行</span>
-        </div>
-      </div>
-      <div class="hero-actions">
-        <button onclick="tick(1)">前进一步</button>
-        <button onclick="tick(5)">前进 5 步</button>
-        <div class="flex" style="gap:6px">
-          <label>自动间隔(ms)</label>
-          <input id="auto-interval" type="number" value="400" min="50" step="50" style="width:90px" />
-        </div>
-        <button class="primary" id="auto-btn" onclick="toggleAuto()">自动运行</button>
-      </div>
-      <div class="status-bar" id="status-bar">就绪，设置参数后直接运行生产者/消费者示例。</div>
+<body>
+  <div class="hero">
+    <div class="title-block">
+      <h1 class="hero-title">MINIOS</h1>
     </div>
+    <div class="hero-actions">
+      <button onclick="tick(1)">前进一步</button>
+      <button onclick="tick(5)">前进 5 步</button>
+      <div class="flex" style="gap:6px">
+        <label>自动间隔(ms)</label>
+        <input id="auto-interval" type="number" value="400" min="50" step="50" style="width:90px" />
+      </div>
+      <button class="primary" id="auto-btn" onclick="toggleAuto()">自动运行</button>
+    </div>
+    <div class="status-bar" id="status-bar" style="display: none;"></div>
+  </div>
 
-    <div class="grid cols-3">
-      <div class="card">
-        <h3>系统初始化</h3>
-        <div class="input-row">
-          <div>
-            <label>页大小 (KB)</label>
-            <input id="page-size" type="number" value="4" min="1" />
-          </div>
-          <div>
-            <label>内存大小 (KB)</label>
-            <input id="mem-size" type="number" value="64" min="1" />
-          </div>
-          <div>
-            <label>虚存大小 (KB)</label>
-            <input id="vm-size" type="number" value="256" min="1" />
-          </div>
+  <div class="grid cols-3 top-row">
+    <div class="card">
+      <h3>系统初始化</h3>
+      <div class="input-row init-grid">
+        <div>
+          <label>页大小 (KB)</label>
+          <input id="page-size" type="number" value="4" min="1" />
         </div>
-        <div class="flex" style="margin-top: 10px">
-          <button class="primary" onclick="initSystem()">重新初始化</button>
-          <span class="small" id="cfg-text"></span>
+        <div>
+          <label>内存大小 (KB)</label>
+          <input id="mem-size" type="number" value="64" min="1" />
+        </div>
+        <div>
+          <label>虚存大小 (KB)</label>
+          <input id="vm-size" type="number" value="256" min="1" />
         </div>
       </div>
-
-      <div class="card">
-        <h3>生产者-消费者示例</h3>
-        <div class="input-row">
-          <div>
-            <label>生产者数</label>
-            <input id="pc-prod" type="number" value="2" min="1" />
-          </div>
-          <div>
-            <label>消费者数</label>
-            <input id="pc-cons" type="number" value="2" min="1" />
-          </div>
-          <div>
-            <label>每个生产数量 (0=无限)</label>
-            <input id="pc-items" type="number" value="0" min="0" />
-          </div>
-          <div>
-            <label>每个消费数量 (0=无限)</label>
-            <input id="pc-items-cons" type="number" value="0" min="0" />
-          </div>
-          <div>
-            <label>进程内存 (KB)</label>
-            <input id="pc-mem" type="number" value="16" min="1" />
-          </div>
-        </div>
-        <div class="flex" style="margin-top: 10px">
-          <button onclick="runPCDemo()">触发生产/消费</button>
-          <span class="small">内置缓冲区，无需文件管理。</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>进程表</h3>
-        <div style="overflow: auto; max-height: 320px">
-          <table id="proc-table">
-            <thead>
-              <tr>
-                <th>PID</th>
-                <th>名称</th>
-                <th>角色</th>
-                <th>进度</th>
-                <th>状态</th>
-                <th>Q</th>
-                <th>时间片</th>
-                <th>PC</th>
-                <th>剩余</th>
-                <th>缺页</th>
-                <th>阻塞</th>
-                <th>内存</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+      <div class="init-actions">
+        <button class="primary" onclick="initSystem()">重新初始化</button>
       </div>
     </div>
 
-    <div class="grid cols-3" style="margin-top: 12px">
-      <div class="card">
-        <div class="cpu-now">
-          <div>
-            <div class="small">当前运行</div>
-            <h3 id="cpu-running">无</h3>
-          </div>
-          <div class="small" id="cpu-slice"></div>
+    <div class="card">
+      <h3>生产者-消费者示例</h3>
+      <div class="input-row">
+        <div>
+          <label>生产者数</label>
+          <input id="pc-prod" type="number" value="2" min="1" />
         </div>
-        <h3>CPU 与多级队列</h3>
-        <div class="flex" style="margin: 6px 0 10px">
-          <span class="pill">时钟 <span id="tick-val">0</span></span>
-          <span class="pill">运行中 <span id="running-pid">无</span></span>
+        <div>
+          <label>消费者数</label>
+          <input id="pc-cons" type="number" value="2" min="1" />
         </div>
-        <div id="queues" class="stacked small"></div>
+        <div>
+          <label>每个生产数量 (0=无限)</label>
+          <input id="pc-items" type="number" value="0" min="0" />
+        </div>
+        <div>
+          <label>每个消费数量 (0=无限)</label>
+          <input id="pc-items-cons" type="number" value="0" min="0" />
+        </div>
+        <div>
+          <label>进程内存 (KB)</label>
+          <input id="pc-mem" type="number" value="16" min="1" />
+        </div>
       </div>
-
-      <div class="card">
-        <div class="flex" style="justify-content: space-between">
-          <h3>物理内存帧</h3>
-          <div class="legend">
-            <span>深色=已占用</span>
-            <span>浅色=预留/空闲</span>
-          </div>
-        </div>
-        <div id="ram-grid" class="ram-grid" style="margin-bottom:10px;"></div>
-        <h3 style="margin-top: 8px;">交换分区帧</h3>
-        <div id="swap-grid" class="swap-grid"></div>
-      </div>
-
-      <div class="card">
-        <h3>生产者/消费者缓冲区</h3>
-        <div class="flex small" style="justify-content: space-between; margin-bottom: 6px;">
-          <div class="chip-row" id="pc-pointer"></div>
-          <div class="small" id="pc-cap"></div>
-        </div>
-        <div id="pc-buffer" class="ram-grid buffer-grid"></div>
+      <div class="flex" style="margin-top: 10px">
+        <button onclick="runPCDemo()">触发生产/消费</button>
+        <span class="small">内置缓冲区，无需文件管理。</span>
       </div>
     </div>
 
-    <div class="grid cols-2" style="margin-top: 12px">
-      <div class="card">
-        <h3>运行日志</h3>
-        <pre class="log" id="log-view"></pre>
-      </div>
-      <div class="card">
-        <h3>教学提示</h3>
-        <ul class="tip-list">
-          <li>点击“重新初始化”可重置页大小/内存/虚存。</li>
-          <li>“生产/消费”示例使用内置缓冲区，无需文件。</li>
-          <li>颜色对应 PID；深色为占用，浅色为预留/空闲。</li>
-          <li>点击进程表行可弹出页表查看详情。</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="pt-modal" id="pt-modal">
-      <div class="pt-dialog">
-        <div class="pt-head">
-          <div>
-            <div class="small" id="pt-title"></div>
-            <h3 id="pt-name"></h3>
-          </div>
-          <button onclick="closePageModal()">关闭</button>
-        </div>
-        <div class="small" id="page-meta"></div>
-        <div style="overflow:auto; max-height: 260px; margin-top: 8px;">
-          <table>
-            <thead>
-              <tr>
-                <th>VPN</th>
-                <th>在内存</th>
-                <th>RAM 帧</th>
-                <th>虚拟内存帧</th>
-              </tr>
-            </thead>
-            <tbody id="pt-table"></tbody>
-          </table>
-        </div>
+    <div class="card">
+      <h3>进程表</h3>
+      <div style="overflow-y: auto; overflow-x: hidden; max-height: 320px">
+        <table id="proc-table">
+          <thead>
+            <tr>
+              <th>PID</th>
+              <th>名称</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>Q</th>
+              <th>时间片</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
+  </div>
 
-    <script>
-      const statusBar = document.getElementById("status-bar");
-      const cfgText = document.getElementById("cfg-text");
-      const tickVal = document.getElementById("tick-val");
-      const runningPid = document.getElementById("running-pid");
-      const queuesEl = document.getElementById("queues");
-      const procTableBody = document.querySelector("#proc-table tbody");
-      const ptBody = document.querySelector("#pt-table");
-      const pageMeta = document.getElementById("page-meta");
-      const ptModal = document.getElementById("pt-modal");
-      const ptTitle = document.getElementById("pt-title");
-      const ptName = document.getElementById("pt-name");
-      const ramGrid = document.getElementById("ram-grid");
-      const swapGrid = document.getElementById("swap-grid");
-      const pcBufferGrid = document.getElementById("pc-buffer");
-      const pcPointer = document.getElementById("pc-pointer");
-      const pcCap = document.getElementById("pc-cap");
-      const logView = document.getElementById("log-view");
-      const cpuRunning = document.getElementById("cpu-running");
-      const cpuSlice = document.getElementById("cpu-slice");
-      const autoBtn = document.getElementById("auto-btn");
-      const autoInput = document.getElementById("auto-interval");
+  <div class="grid cols-3" style="margin-top: 12px">
+    <div class="card">
+      <div class="cpu-now">
+        <div class="cpu-badge">CPU</div>
+        <div>
+          <div class="small">当前运行</div>
+          <h3 id="cpu-running">无</h3>
+        </div>
+        <div class="small" id="cpu-slice"></div>
+      </div>
+      <h3>队列状态</h3>
+      <div class="flex" style="margin: 6px 0 10px">
+        <span class="pill">时钟 <span id="tick-val">0</span></span>
+        <span class="pill">运行中 <span id="running-pid">无</span></span>
+      </div>
+      <div id="queues" class="queue-panel"></div>
+    </div>
 
-      let currentState = null;
-      let autoTimer = null;
-      let autoInterval = Number(autoInput.value) || 400;
+    <div class="card">
+      <div class="flex" style="justify-content: space-between">
+        <h3>物理内存帧</h3>
+        <div class="legend">
+          <span>深色=已占用</span>
+          <span>浅色=预留/空闲</span>
+        </div>
+      </div>
+      <div id="ram-grid" class="ram-grid" style="margin-bottom:10px;"></div>
+      <h3 style="margin-top: 8px;">交换分区帧</h3>
+      <div id="swap-grid" class="swap-grid"></div>
+    </div>
 
-      const palette = {};
-      function pidColor(pid) {
-        if (!pid) return "#8a94a9";
-        if (!palette[pid]) {
-          const hue = (pid * 37) % 360;
-          palette[pid] = `hsl(${hue}, 70%, 54%)`;
-        }
-        return palette[pid];
+    <div class="card">
+      <h3>生产者/消费者缓冲区</h3>
+      <div class="flex small" style="justify-content: space-between; margin-bottom: 6px;">
+        <div class="chip-row" id="pc-pointer"></div>
+        <div class="small" id="pc-cap"></div>
+      </div>
+      <div id="pc-buffer" class="ram-grid buffer-grid"></div>
+    </div>
+  </div>
+
+  <div class="grid cols-2" style="margin-top: 12px">
+    <div class="card">
+      <h3>运行日志</h3>
+      <pre class="log" id="log-view"></pre>
+    </div>
+    <div class="card">
+      <h3>教学提示</h3>
+      <ul class="tip-list">
+        <li>点击“重新初始化”可重置页大小/内存/虚存。</li>
+        <li>“生产/消费”示例使用内置缓冲区，无需文件。</li>
+        <li>颜色对应 PID；深色为占用，浅色为预留/空闲。</li>
+        <li>点击进程表行可弹出页表查看详情。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pt-modal" id="pt-modal">
+    <div class="pt-dialog">
+      <div class="pt-head">
+        <div>
+          <div class="small" id="pt-title"></div>
+          <h3 id="pt-name"></h3>
+        </div>
+        <button onclick="closePageModal()">关闭</button>
+      </div>
+      <div class="small" id="page-meta"></div>
+      <div style="overflow:auto; max-height: 260px; margin-top: 8px;">
+        <table>
+          <thead>
+            <tr>
+              <th>VPN</th>
+              <th>在内存</th>
+              <th>RAM 帧</th>
+              <th>虚拟内存帧</th>
+            </tr>
+          </thead>
+          <tbody id="pt-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusBar = document.getElementById("status-bar");
+    const tickVal = document.getElementById("tick-val");
+    const runningPid = document.getElementById("running-pid");
+    const queuesEl = document.getElementById("queues");
+    const procTableBody = document.querySelector("#proc-table tbody");
+    const ptBody = document.querySelector("#pt-table");
+    const pageMeta = document.getElementById("page-meta");
+    const ptModal = document.getElementById("pt-modal");
+    const ptTitle = document.getElementById("pt-title");
+    const ptName = document.getElementById("pt-name");
+    const ramGrid = document.getElementById("ram-grid");
+    const swapGrid = document.getElementById("swap-grid");
+    const pcBufferGrid = document.getElementById("pc-buffer");
+    const pcPointer = document.getElementById("pc-pointer");
+    const pcCap = document.getElementById("pc-cap");
+    const logView = document.getElementById("log-view");
+    const cpuRunning = document.getElementById("cpu-running");
+    const cpuSlice = document.getElementById("cpu-slice");
+    const autoBtn = document.getElementById("auto-btn");
+    const autoInput = document.getElementById("auto-interval");
+
+    let currentState = null;
+    let autoTimer = null;
+    let autoInterval = Number(autoInput.value) || 400;
+    const mlfqQuanta = [4, 8, 16];
+
+    const palette = {};
+    function pidColor(pid) {
+      if (!pid) return "#8a94a9";
+      if (!palette[pid]) {
+        const hue = (pid * 37) % 360;
+        palette[pid] = `hsl(${hue}, 70%, 54%)`;
+      }
+      return palette[pid];
+    }
+
+    async function fetchJson(path, opts = {}) {
+      const res = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    async function initSystem() {
+      const payload = {
+        page_kb: Number(document.getElementById("page-size").value || 4),
+        mem_kb: Number(document.getElementById("mem-size").value || 64),
+        vm_kb: Number(document.getElementById("vm-size").value || 256),
+      };
+      await fetchJson("/api/init", { method: "POST", body: JSON.stringify(payload) });
+      setStatus("系统已重新初始化");
+      await refresh();
+    }
+
+    async function tick(count = 1) {
+      await fetchJson("/api/tick", { method: "POST", body: JSON.stringify({ count }) });
+      await refresh();
+    }
+
+    async function runPCDemo() {
+      const payload = {
+        producers: Number(document.getElementById("pc-prod").value || 1),
+        consumers: Number(document.getElementById("pc-cons").value || 1),
+        items_per_producer: Number(document.getElementById("pc-items").value || 0),
+        items_per_consumer: Number(document.getElementById("pc-items-cons").value || 0),
+        mem_kb_each: Number(document.getElementById("pc-mem").value || 8),
+      };
+      await fetchJson("/api/pc_demo", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      await refresh();
+    }
+
+    async function refresh() {
+      try {
+        const state = await fetchJson("/api/state");
+        currentState = state;
+        render(state);
+      } catch (err) {
+        setStatus(err.message, true);
+      }
+    }
+
+    function render(state) {
+      tickVal.textContent = state.ticks;
+      runningPid.textContent = state.running_pid || "无";
+      if (state.running_pid) {
+        const runningProc = state.processes.find((p) => p.pid === state.running_pid);
+        cpuRunning.textContent = `PID ${state.running_pid}`;
+        cpuRunning.style.color = pidColor(state.running_pid);
+        cpuSlice.textContent = runningProc
+          ? `剩余时间片 ${runningProc.slice_left} | 队列 Q${runningProc.queue}`
+          : "运行中";
+      } else {
+        cpuRunning.textContent = "无";
+        cpuRunning.style.color = "#0f172a";
+        cpuSlice.textContent = "等待调度";
       }
 
-      async function fetchJson(path, opts = {}) {
-        const res = await fetch(path, {
-          headers: { "Content-Type": "application/json" },
-          ...opts,
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        return data;
-      }
+      queuesEl.innerHTML = "";
+      state.queues.forEach((q, idx) => {
+        const card = document.createElement("div");
+        card.className = `queue-card level-${idx}`;
 
-      async function initSystem() {
-        const payload = {
-          page_kb: Number(document.getElementById("page-size").value || 4),
-          mem_kb: Number(document.getElementById("mem-size").value || 64),
-          vm_kb: Number(document.getElementById("vm-size").value || 256),
-        };
-        await fetchJson("/api/init", { method: "POST", body: JSON.stringify(payload) });
-        setStatus("系统已重新初始化");
-        await refresh();
-      }
+        const head = document.createElement("div");
+        head.className = "queue-head";
+        const label = `Q${idx}`;
+        const quantum = mlfqQuanta[idx] ?? "-";
+        head.innerHTML = `<div>队列 ${label}</div><div class="queue-slice">时间片: ${quantum}</div>`;
 
-      async function tick(count = 1) {
-        await fetchJson("/api/tick", { method: "POST", body: JSON.stringify({ count }) });
-        await refresh();
-      }
-
-      async function runPCDemo() {
-        const payload = {
-          producers: Number(document.getElementById("pc-prod").value || 1),
-          consumers: Number(document.getElementById("pc-cons").value || 1),
-          items_per_producer: Number(document.getElementById("pc-items").value || 0),
-          items_per_consumer: Number(document.getElementById("pc-items-cons").value || 0),
-          mem_kb_each: Number(document.getElementById("pc-mem").value || 8),
-        };
-        await fetchJson("/api/pc_demo", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        setStatus("已创建生产者/消费者并重置缓冲区");
-        await refresh();
-      }
-
-      async function refresh() {
-        try {
-          const state = await fetchJson("/api/state");
-          currentState = state;
-          render(state);
-        } catch (err) {
-          setStatus(err.message, true);
-        }
-      }
-
-      function render(state) {
-        cfgText.textContent = `页 ${state.config.page_kb} KB | 内存 ${state.config.mem_kb} KB (${state.config.ram_frames} 帧) | 虚存 ${state.config.vm_kb} KB (${state.config.swap_frames} 帧)`;
-        tickVal.textContent = state.ticks;
-        runningPid.textContent = state.running_pid || "无";
-        if (state.running_pid) {
-          const runningProc = state.processes.find((p) => p.pid === state.running_pid);
-          cpuRunning.textContent = `PID ${state.running_pid}`;
-          cpuRunning.style.color = pidColor(state.running_pid);
-          cpuSlice.textContent = runningProc
-            ? `剩余时间片 ${runningProc.slice_left} | 队列 Q${runningProc.queue}`
-            : "运行中";
+        const body = document.createElement("div");
+        body.className = "queue-body";
+        if (!q.length) {
+          const empty = document.createElement("div");
+          empty.className = "queue-empty";
+          empty.textContent = "队列为空";
+          body.appendChild(empty);
         } else {
-          cpuRunning.textContent = "无";
-          cpuRunning.style.color = "#0f172a";
-          cpuSlice.textContent = "等待调度";
+          q.forEach((pid) => {
+            const chip = document.createElement("div");
+            chip.className = "queue-chip";
+            chip.style.background = pidColor(pid) + "22";
+            chip.style.borderColor = pidColor(pid);
+            chip.textContent = `PID ${pid}`;
+            body.appendChild(chip);
+          });
         }
 
-        queuesEl.innerHTML = "";
-        state.queues.forEach((q, idx) => {
-          const block = document.createElement("div");
-          const title = document.createElement("div");
-          title.innerHTML = `<strong>Q${idx}</strong>`;
-          const row = document.createElement("div");
-          row.className = "chip-row";
-          if (!q.length) {
-            const empty = document.createElement("div");
-            empty.className = "chip";
-            empty.textContent = "空";
-            row.appendChild(empty);
-          } else {
-            q.forEach((pid) => {
-              const chip = document.createElement("div");
-              chip.className = "chip";
-              chip.style.background = pidColor(pid) + "22";
-              chip.style.borderColor = pidColor(pid);
-              chip.textContent = `PID ${pid}`;
-              row.appendChild(chip);
-            });
-          }
-          block.appendChild(title);
-          block.appendChild(row);
-          queuesEl.appendChild(block);
-        });
+        card.appendChild(head);
+        card.appendChild(body);
+        queuesEl.appendChild(card);
+      });
 
-        procTableBody.innerHTML = "";
-        state.processes.forEach((p) => {
-          const tr = document.createElement("tr");
-          tr.style.cursor = "pointer";
-          tr.onclick = () => showPageModal(p.pid);
-          tr.innerHTML = `
+      procTableBody.innerHTML = "";
+      state.processes.forEach((p) => {
+        const tr = document.createElement("tr");
+        tr.style.cursor = "pointer";
+        tr.onclick = () => showPageModal(p.pid);
+        tr.innerHTML = `
             <td>${p.pid}</td>
             <td style="color:${pidColor(p.pid)}">${p.name}</td>
             <td>${p.role || "-"}</td>
-            <td>${p.items_done || 0} / ${p.items_goal || 0}</td>
             <td>${p.state}</td>
             <td>${p.queue}</td>
             <td>${p.slice_left}</td>
-            <td>${p.pc}</td>
-            <td>${p.remaining}</td>
-            <td>${p.page_faults}</td>
-            <td>${p.block_left}</td>
-            <td>${p.mem_kb}</td>
           `;
-          procTableBody.appendChild(tr);
-        });
+        procTableBody.appendChild(tr);
+      });
 
-        ramGrid.innerHTML = "";
-        state.ram.forEach((fr) => {
-          const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
-          const div = document.createElement("div");
-          const base = fr.owner ? pidColor(fr.owner.pid) : "#dfe8f5";
-          const tint = fr.owner
-            ? base
-            : fr.reserved
+      ramGrid.innerHTML = "";
+      state.ram.forEach((fr) => {
+        const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
+        const div = document.createElement("div");
+        const base = fr.owner ? pidColor(fr.owner.pid) : "#dfe8f5";
+        const tint = fr.owner
+          ? base
+          : fr.reserved
             ? pidColor(fr.reserved) + "30"
             : "#f3f7ff";
-          div.className = "frame";
-          div.style.background = tint;
-          div.style.color = fr.owner ? "#0a0f1d" : "#223047";
-          div.innerHTML = `<span class="tag">R${fr.id}</span>${owner}<br/><span class="small">${
-            fr.reserved ? "res " + fr.reserved : "open"
+        div.className = "frame";
+        div.style.background = tint;
+        div.style.color = fr.owner ? "#0a0f1d" : "#223047";
+        div.innerHTML = `<span class="tag">R${fr.id}</span>${owner}<br/><span class="small">${fr.reserved ? "res " + fr.reserved : "open"
           }</span>`;
-          ramGrid.appendChild(div);
-        });
+        ramGrid.appendChild(div);
+      });
 
-        swapGrid.innerHTML = "";
-        state.swap.forEach((fr) => {
-          const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
-          const div = document.createElement("div");
-          div.className = "frame";
-          div.style.background = fr.owner ? pidColor(fr.owner.pid) : "#e6f3ff";
-          div.style.color = fr.owner ? "#0a0f1d" : "#223047";
-          div.innerHTML = `<span class="tag">S${fr.id}</span>${owner}`;
-          swapGrid.appendChild(div);
-        });
+      swapGrid.innerHTML = "";
+      state.swap.forEach((fr) => {
+        const owner = fr.owner ? `${fr.owner.pid}:${fr.owner.vpn}` : "FREE";
+        const div = document.createElement("div");
+        div.className = "frame";
+        div.style.background = fr.owner ? pidColor(fr.owner.pid) : "#e6f3ff";
+        div.style.color = fr.owner ? "#0a0f1d" : "#223047";
+        div.innerHTML = `<span class="tag">S${fr.id}</span>${owner}`;
+        swapGrid.appendChild(div);
+      });
 
-        renderBuffer(state.pc_buffer);
-        logView.textContent = state.log.join("\n");
-      }
+      renderBuffer(state.pc_buffer);
+      logView.textContent = state.log.join("\n");
+    }
 
-      function showPageModal(pid) {
-        if (!currentState) return;
-        const proc = currentState.processes.find((p) => p.pid === pid);
-        if (!proc) return;
-        ptBody.innerHTML = "";
-        pageMeta.textContent = `页数 ${proc.num_pages} | RAM 配额 ${proc.ram_quota}`;
-        ptTitle.textContent = `PID ${proc.pid} 页表`;
-        ptName.textContent = proc.name;
-        proc.page_table.forEach((row) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
+    function showPageModal(pid) {
+      if (!currentState) return;
+      const proc = currentState.processes.find((p) => p.pid === pid);
+      if (!proc) return;
+      ptBody.innerHTML = "";
+      pageMeta.textContent = `页数 ${proc.num_pages} | RAM 配额 ${proc.ram_quota}`;
+      ptTitle.textContent = `PID ${proc.pid} 页表`;
+      ptName.textContent = proc.name;
+      proc.page_table.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
             <td>${row.vpn}</td>
             <td>${row.present ? "1" : "0"}</td>
             <td>${row.frame ?? "-"}</td>
             <td>${row.swap ?? "-"}</td>
           `;
-          ptBody.appendChild(tr);
-        });
-        ptModal.classList.add("open");
-      }
+        ptBody.appendChild(tr);
+      });
+      ptModal.classList.add("open");
+    }
 
-      function closePageModal() {
-        ptModal.classList.remove("open");
-      }
+    function closePageModal() {
+      ptModal.classList.remove("open");
+    }
 
-      function renderBuffer(bufState) {
-        pcBufferGrid.innerHTML = "";
-        pcPointer.innerHTML = "";
-        pcCap.textContent = "";
-        if (!bufState) return;
-        const items = bufState.items || [];
-        const cap = bufState.capacity || 0;
-        const safeCap = cap || 1;
-        const inPtr = bufState.in ?? 0;
-        const outPtr = bufState.out ?? 0;
+    function renderBuffer(bufState) {
+      pcBufferGrid.innerHTML = "";
+      pcPointer.innerHTML = "";
+      pcCap.textContent = "";
+      if (!bufState) return;
+      const items = bufState.items || [];
+      const cap = bufState.capacity || 0;
+      const safeCap = cap || 1;
+      const inPtr = bufState.in ?? 0;
+      const outPtr = bufState.out ?? 0;
 
-        pcCap.textContent = `容量 ${cap} | in=${inPtr} , out=${outPtr}`;
+      pcCap.textContent = `容量 ${cap} | in=${inPtr} , out=${outPtr}`;
 
-        ["in", "out"].forEach((label) => {
-          if (!cap) return;
-          const chip = document.createElement("div");
-          chip.className = "chip";
-          chip.style.borderColor = label === "in" ? "#1a6bff" : "#d12c3a";
-          chip.style.background = label === "in" ? "#e5f0ff" : "#ffe8ec";
-          chip.textContent =
-            label === "in"
-              ? `IN 指针 -> 下一次放入位置 ${inPtr} ( (x+1)%${safeCap} )`
-              : `OUT 指针 -> 下一次取出位置 ${outPtr} ( (x+1)%${safeCap} )`;
-          pcPointer.appendChild(chip);
-        });
-
-        const ring = document.createElement("div");
-        ring.className = "circle-buffer";
-        ring.style.setProperty("--count", Math.max(cap, 1));
-        ring.style.setProperty("--radius", cap <= 4 ? "80px" : "110px");
-
-        const centerLabel = document.createElement("div");
-        centerLabel.className = "center-label";
-        centerLabel.innerHTML = `<div>环形缓冲池</div><div class="small">${bufState.count}/${cap}</div>`;
-        ring.appendChild(centerLabel);
-
-        for (let i = 0; i < cap; i++) {
-          const div = document.createElement("div");
-          div.className = "slot";
-          div.style.setProperty("--i", i);
-          const item = items[i];
-          const owned = item !== undefined && item !== null;
-          if (owned) {
-            div.classList.add("has-item");
-          }
-          div.textContent = owned ? "有产品" : "空";
-          const marks = [];
-          if (i === inPtr) marks.push("IN");
-          if (i === outPtr) marks.push("OUT");
-          if (marks.length) {
-            const m = document.createElement("div");
-            m.className = "mark";
-            m.textContent = marks.join(" | ");
-            div.appendChild(m);
-          }
-          ring.appendChild(div);
-        }
-
-        const addPointer = (label, idx, cls) => {
-          if (!cap) return;
-          const p = document.createElement("div");
-          p.className = `pointer ${cls}`;
-          p.style.setProperty("--i", idx % cap);
-          p.textContent = label;
-          ring.appendChild(p);
-        };
-        addPointer("C/OUT", outPtr, "out");
-        addPointer("P/IN", inPtr, "in");
-
-        pcBufferGrid.appendChild(ring);
-      }
-
-      function setStatus(msg, isError = false) {
-        statusBar.textContent = msg;
-        statusBar.style.color = isError ? varColor("--danger") : varColor("--muted");
-      }
-
-      function varColor(name) {
-        return getComputedStyle(document.documentElement)
-          .getPropertyValue(name)
-          .trim();
-      }
-
-      function toggleAuto() {
-        autoInterval = Number(autoInput.value) || 400;
-        autoInterval = Math.max(50, autoInterval);
-        autoInput.value = autoInterval;
-        if (autoTimer) {
-          clearInterval(autoTimer);
-          autoTimer = null;
-          autoBtn.textContent = "自动运行";
-          setStatus("自动运行已停止");
-        } else {
-          autoTimer = setInterval(() => {
-            tick(1).catch((err) => setStatus(err.message, true));
-          }, autoInterval);
-          autoBtn.textContent = "停止自动";
-          setStatus(`自动运行中，间隔 ${autoInterval} ms`);
-        }
-      }
-
-      autoInput.addEventListener("change", () => {
-        autoInterval = Number(autoInput.value) || autoInterval;
-        autoInterval = Math.max(50, autoInterval);
-        autoInput.value = autoInterval;
-        if (autoTimer) {
-          clearInterval(autoTimer);
-          autoTimer = setInterval(() => {
-            tick(1).catch((err) => setStatus(err.message, true));
-          }, autoInterval);
-          setStatus(`自动运行中，间隔 ${autoInterval} ms`);
-        } else {
-          setStatus(`自动间隔设置为 ${autoInterval} ms`);
-        }
+      ["in", "out"].forEach((label) => {
+        if (!cap) return;
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.style.borderColor = label === "in" ? "#1a6bff" : "#d12c3a";
+        chip.style.background = label === "in" ? "#e5f0ff" : "#ffe8ec";
+        chip.textContent =
+          label === "in"
+            ? `IN 指针 -> 下一次放入位置 ${inPtr} ( (x+1)%${safeCap} )`
+            : `OUT 指针 -> 下一次取出位置 ${outPtr} ( (x+1)%${safeCap} )`;
+        pcPointer.appendChild(chip);
       });
 
-      refresh();
-    </script>
-  </body>
+      const ring = document.createElement("div");
+      ring.className = "circle-buffer";
+      ring.style.setProperty("--count", Math.max(cap, 1));
+      ring.style.setProperty("--radius", cap <= 4 ? "80px" : "110px");
+
+      const centerLabel = document.createElement("div");
+      centerLabel.className = "center-label";
+      centerLabel.innerHTML = `<div>环形缓冲池</div><div class="small">${bufState.count}/${cap}</div>`;
+      ring.appendChild(centerLabel);
+
+      for (let i = 0; i < cap; i++) {
+        const div = document.createElement("div");
+        div.className = "slot";
+        div.style.setProperty("--i", i);
+        const item = items[i];
+        const owned = item !== undefined && item !== null;
+        if (owned) {
+          div.classList.add("has-item");
+        }
+        div.textContent = owned ? "有产品" : "空";
+        const marks = [];
+        if (i === inPtr) marks.push("IN");
+        if (i === outPtr) marks.push("OUT");
+        if (marks.length) {
+          const m = document.createElement("div");
+          m.className = "mark";
+          m.textContent = marks.join(" | ");
+          div.appendChild(m);
+        }
+        ring.appendChild(div);
+      }
+
+      const addPointer = (label, idx, cls) => {
+        if (!cap) return;
+        const p = document.createElement("div");
+        p.className = `pointer ${cls}`;
+        p.style.setProperty("--i", idx % cap);
+        p.textContent = label;
+        ring.appendChild(p);
+      };
+      addPointer("C/OUT", outPtr, "out");
+      addPointer("P/IN", inPtr, "in");
+
+      pcBufferGrid.appendChild(ring);
+    }
+
+    function setStatus(msg, isError = false) {
+      statusBar.textContent = msg;
+      statusBar.style.color = isError ? varColor("--danger") : varColor("--muted");
+    }
+
+    function varColor(name) {
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+    }
+
+    function toggleAuto() {
+      autoInterval = Number(autoInput.value) || 400;
+      autoInterval = Math.max(50, autoInterval);
+      autoInput.value = autoInterval;
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        autoBtn.textContent = "自动运行";
+        setStatus("自动运行已停止");
+      } else {
+        autoTimer = setInterval(() => {
+          tick(1).catch((err) => setStatus(err.message, true));
+        }, autoInterval);
+        autoBtn.textContent = "停止自动";
+        setStatus(`自动运行中，间隔 ${autoInterval} ms`);
+      }
+    }
+
+    autoInput.addEventListener("change", () => {
+      autoInterval = Number(autoInput.value) || autoInterval;
+      autoInterval = Math.max(50, autoInterval);
+      autoInput.value = autoInterval;
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = setInterval(() => {
+          tick(1).catch((err) => setStatus(err.message, true));
+        }, autoInterval);
+        setStatus(`自动运行中，间隔 ${autoInterval} ms`);
+      } else {
+        setStatus(`自动间隔设置为 ${autoInterval} ms`);
+      }
+    });
+
+    refresh();
+  </script>
+</body>
+
 </html>
